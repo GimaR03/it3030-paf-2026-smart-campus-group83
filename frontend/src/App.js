@@ -51,10 +51,39 @@ const dashboardActions = [
   },
 ];
 
+const portalActions = [
+  {
+    id: "book",
+    title: "Book",
+    subtitle: "Open room booking form",
+    accent: "teal",
+  },
+  {
+    id: "ticket",
+    title: "Ticket",
+    subtitle: "Open ticket and room status",
+    accent: "sky",
+  },
+  {
+    id: "admin",
+    title: "Admin",
+    subtitle: "Open admin management page",
+    accent: "terracotta",
+  },
+  {
+    id: "login",
+    title: "Login",
+    subtitle: "Open staff login panel",
+    accent: "leaf",
+  },
+];
+
 function App() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState(null);
+  const [currentDashboard, setCurrentDashboard] = useState("portal");
+  const [blankPageTitle, setBlankPageTitle] = useState("");
   const [activeSection, setActiveSection] = useState("manage-buildings");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -342,6 +371,20 @@ function App() {
     setSuccessMessage("");
   }
 
+  function handlePortalAction(actionId) {
+    clearMessages();
+
+    if (actionId === "admin") {
+      setCurrentDashboard("admin");
+      setActiveSection("manage-buildings");
+      return;
+    }
+
+    const selectedAction = portalActions.find((action) => action.id === actionId);
+    setBlankPageTitle(selectedAction?.title || "Page");
+    setCurrentDashboard("blank");
+  }
+
   function handleRoomBuildingChange(buildingId) {
     setRoomForm((current) => ({
       ...current,
@@ -602,12 +645,85 @@ function App() {
     }
   }
 
+  if (currentDashboard === "portal") {
+    return (
+      <main className="dashboard-shell">
+        <div className="abstract-bg" />
+        <div className="dashboard-wrap">
+          <header className="hero-banner portal-hero">
+            <span className="hero-tag">Smart Campus Access</span>
+            <h1>Smart Campus Portal</h1>
+            <p>
+              Choose an action to continue. Use Admin to open your created admin page,
+              or jump directly to booking and ticket sections.
+            </p>
+          </header>
+
+          <section className="action-grid portal-grid">
+            {portalActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={`action-button ${action.accent}`}
+                onClick={() => handlePortalAction(action.id)}
+              >
+                <span>{action.title}</span>
+                <small>{action.subtitle}</small>
+              </button>
+            ))}
+          </section>
+
+          {successMessage && <p className="message success">{successMessage}</p>}
+        </div>
+      </main>
+    );
+  }
+
+  if (currentDashboard === "blank") {
+    return (
+      <main className="dashboard-shell">
+        <div className="abstract-bg" />
+        <div className="dashboard-wrap">
+          <header className="hero-banner portal-hero">
+            <div className="hero-head-row">
+              <span className="hero-tag">Smart Campus Access</span>
+              <button
+                type="button"
+                className="tiny-btn hero-back"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("portal");
+                }}
+              >
+                Back To Portal
+              </button>
+            </div>
+            <h1>{blankPageTitle} Page</h1>
+            <p>This page is intentionally blank.</p>
+          </header>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
         <header className="hero-banner">
-          <span className="hero-tag">Smart Campus Control Center</span>
+          <div className="hero-head-row">
+            <span className="hero-tag">Smart Campus Control Center</span>
+            <button
+              type="button"
+              className="tiny-btn hero-back"
+              onClick={() => {
+                clearMessages();
+                setCurrentDashboard("portal");
+              }}
+            >
+              Back To Portal
+            </button>
+          </div>
           <h1>Campus Command Dashboard</h1>
           <p>
             Use action buttons to open Add Building and Add Floor forms, Book Room form,

@@ -3,6 +3,6 @@ import App from './App';
 
 test('renders learn react link', () => {
   render(<App />);
-  const headingElement = screen.getByText(/campus command dashboard/i);
+  const headingElement = screen.getByText(/smart campus portal/i);
   expect(headingElement).toBeInTheDocument();
 });
