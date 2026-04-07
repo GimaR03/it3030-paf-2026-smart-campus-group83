@@ -39,6 +39,8 @@ const ticketCategories = [
 ];
 const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const MAX_TICKET_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
+const MAX_TICKET_IMAGE_REQUEST_BYTES = 50 * 1024 * 1024;
 const ticketBuildingOptions = [
   { value: "1", label: "Main Building", floorCount: 9 },
   { value: "2", label: "New Building", floorCount: 14 },
@@ -436,6 +438,7 @@ function App() {
         return;
       }
 
+      validateTicketImages(ticketForm.images);
       const newTicket = await createTicket(buildTicketFormData(ticketForm));
 
       setTickets((current) => [newTicket, ...current]);
@@ -481,6 +484,21 @@ function App() {
       assignedTechnicianId: form.assignedTechnicianId.trim() || null,
       createdDate: withDateTimeSeconds(form.createdDate),
     };
+  }
+
+  function validateTicketImages(images) {
+    const files = Array.from(images || []);
+    const oversizedFile = files.find((file) => file.size > MAX_TICKET_IMAGE_SIZE_BYTES);
+    if (oversizedFile) {
+      throw new Error(
+        `${oversizedFile.name} is too large. Each image must be 25MB or smaller.`
+      );
+    }
+
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > MAX_TICKET_IMAGE_REQUEST_BYTES) {
+      throw new Error("Total image upload is too large. Select files under 50MB in total.");
+    }
   }
 
   function clearMessages() {
@@ -1205,7 +1223,7 @@ function App() {
                     <small className="field-hint">
                       {editingTicketId
                         ? "Existing images stay attached while editing. Add new images by creating a new ticket."
-                        : "Upload one or more image files directly from your device."}
+                        : "Upload one or more image files directly from your device. Limit: 25MB per file, 50MB total."}
                     </small>
                   </label>
                 </div>
