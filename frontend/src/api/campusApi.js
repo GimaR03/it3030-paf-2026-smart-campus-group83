@@ -10,9 +10,14 @@ function toJsonHeaders(headers = {}) {
 async function request(path, options = {}) {
   let response;
   try {
+    const headers =
+      options.body instanceof FormData
+        ? options.headers
+        : toJsonHeaders(options.headers);
+
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: toJsonHeaders(options.headers),
+      headers,
     });
   } catch (error) {
     throw new Error(
@@ -31,15 +36,18 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, response.statusText));
+    throw new Error(getErrorMessage(payload, response));
   }
 
   return payload;
 }
 
-function getErrorMessage(payload, fallback) {
+function getErrorMessage(payload, response) {
+  const fallback =
+    response?.statusText || (response?.status ? `HTTP ${response.status}` : "Request failed");
+
   if (!payload) {
-    return fallback || "Request failed";
+    return fallback;
   }
   if (payload.fieldErrors && typeof payload.fieldErrors === "object") {
     const firstFieldError = Object.values(payload.fieldErrors)[0];
@@ -47,7 +55,7 @@ function getErrorMessage(payload, fallback) {
       return firstFieldError;
     }
   }
-  return payload.message || fallback || "Request failed";
+  return payload.message || fallback;
 }
 
 export function fetchBuildings() {
@@ -114,6 +122,30 @@ export function updateRoom(roomId, roomData) {
 
 export function deleteRoom(roomId) {
   return request(`/rooms/${roomId}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchTickets() {
+  return request("/tickets");
+}
+
+export function createTicket(ticketData) {
+  return request("/tickets", {
+    method: "POST",
+    body: ticketData,
+  });
+}
+
+export function updateTicket(ticketId, ticketData) {
+  return request(`/tickets/${ticketId}`, {
+    method: "PUT",
+    body: JSON.stringify(ticketData),
+  });
+}
+
+export function deleteTicket(ticketId) {
+  return request(`/tickets/${ticketId}`, {
     method: "DELETE",
   });
 }

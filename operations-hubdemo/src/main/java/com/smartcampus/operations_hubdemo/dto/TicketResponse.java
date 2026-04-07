@@ -16,7 +16,7 @@ public record TicketResponse(
         TicketStatus status,
         Long resourceId,
         Long userId,
-        Long assignedTechnicianId,
+        String assignedTechnicianId,
         List<String> imageUrls,
         LocalDateTime createdDate
 ) {

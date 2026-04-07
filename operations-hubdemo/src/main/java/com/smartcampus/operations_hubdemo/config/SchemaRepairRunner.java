@@ -6,6 +6,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.util.List;
 
 @Component
@@ -13,14 +17,21 @@ public class SchemaRepairRunner implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SchemaRepairRunner.class);
     private final JdbcTemplate jdbcTemplate;
+    private final DataSource dataSource;
 
-    public SchemaRepairRunner(JdbcTemplate jdbcTemplate) {
+    public SchemaRepairRunner(JdbcTemplate jdbcTemplate, DataSource dataSource) {
         this.jdbcTemplate = jdbcTemplate;
+        this.dataSource = dataSource;
     }
 
     @Override
     public void run(String... args) {
         try {
+            if (!isMySqlDatabase()) {
+                log.info("Skipping schema repair for non-MySQL datasource");
+                return;
+            }
+
             if (!tableExists("buildings1")) {
                 return;
             }
@@ -48,6 +59,13 @@ public class SchemaRepairRunner implements CommandLineRunner {
             }
         } catch (Exception ex) {
             log.warn("Schema repair skipped due to error: {}", ex.getMessage());
+        }
+    }
+
+    private boolean isMySqlDatabase() throws SQLException {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            return metaData.getDatabaseProductName().toLowerCase().contains("mysql");
         }
     }
 

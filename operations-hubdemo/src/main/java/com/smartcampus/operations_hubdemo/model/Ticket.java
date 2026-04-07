@@ -50,8 +50,8 @@ public class Ticket {
     @Column(nullable = false)
     private Long userId;
 
-    @Column
-    private Long assignedTechnicianId;
+    @Column(length = 100)
+    private String assignedTechnicianId;
 
     @Column(nullable = false)
     private LocalDateTime createdDate;
@@ -125,11 +125,11 @@ public class Ticket {
         this.userId = userId;
     }
 
-    public Long getAssignedTechnicianId() {
+    public String getAssignedTechnicianId() {
         return assignedTechnicianId;
     }
 
-    public void setAssignedTechnicianId(Long assignedTechnicianId) {
+    public void setAssignedTechnicianId(String assignedTechnicianId) {
         this.assignedTechnicianId = assignedTechnicianId;
     }
 

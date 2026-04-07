@@ -5,7 +5,9 @@ import com.smartcampus.operations_hubdemo.dto.TicketResponse;
 import com.smartcampus.operations_hubdemo.model.Ticket;
 import com.smartcampus.operations_hubdemo.repository.TicketRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,19 +40,43 @@ public class TicketService {
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, List<MultipartFile> images) {
         Ticket ticket = new Ticket();
-        ticket.setTitle(request.title().trim());
-        ticket.setDescription(request.description().trim());
-        ticket.setCategory(request.category());
-        ticket.setPriority(request.priority());
-        ticket.setStatus(request.status());
-        ticket.setResourceId(request.resourceId());
-        ticket.setUserId(request.userId());
-        ticket.setAssignedTechnicianId(request.assignedTechnicianId());
-        ticket.setCreatedDate(request.createdDate());
+        applyTicketFields(ticket, request);
         ticket.setImageUrls(storeImages(images));
 
         Ticket saved = ticketRepository.save(ticket);
         return toTicketResponse(saved);
+    }
+
+    @Transactional
+    public TicketResponse updateTicket(Long ticketId, CreateTicketRequest request) {
+        Ticket ticket = findTicket(ticketId);
+        applyTicketFields(ticket, request);
+        Ticket saved = ticketRepository.save(ticket);
+        return toTicketResponse(saved);
+    }
+
+    @Transactional
+    public void deleteTicket(Long ticketId) {
+        Ticket ticket = findTicket(ticketId);
+        deleteStoredImages(ticket.getImageUrls());
+        ticketRepository.delete(ticket);
+    }
+
+    private Ticket findTicket(Long ticketId) {
+        return ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+    }
+
+    private void applyTicketFields(Ticket ticket, CreateTicketRequest request) {
+        ticket.setTitle(request.getTitle().trim());
+        ticket.setDescription(request.getDescription().trim());
+        ticket.setCategory(request.getCategory());
+        ticket.setPriority(request.getPriority());
+        ticket.setStatus(request.getStatus());
+        ticket.setResourceId(request.getResourceId());
+        ticket.setUserId(request.getUserId());
+        ticket.setAssignedTechnicianId(normalizeOptionalText(request.getAssignedTechnicianId()));
+        ticket.setCreatedDate(request.getCreatedDate());
     }
 
     private List<String> storeImages(List<MultipartFile> images) {
@@ -70,6 +96,15 @@ public class TicketService {
                 .toList();
     }
 
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private String storeSingleImage(MultipartFile image) {
         String originalName = image.getOriginalFilename();
         String safeName = originalName == null
@@ -85,6 +120,26 @@ public class TicketService {
         }
 
         return "/uploads/tickets/" + storedName;
+    }
+
+    private void deleteStoredImages(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+
+        for (String imageUrl : imageUrls) {
+            if (imageUrl == null || !imageUrl.startsWith("/uploads/tickets/")) {
+                continue;
+            }
+
+            String fileName = imageUrl.substring("/uploads/tickets/".length());
+            Path filePath = UPLOAD_ROOT.resolve(fileName);
+            try {
+                Files.deleteIfExists(filePath);
+            } catch (IOException ignored) {
+                // Leave orphaned file behind rather than blocking ticket deletion.
+            }
+        }
     }
 
     private TicketResponse toTicketResponse(Ticket ticket) {
