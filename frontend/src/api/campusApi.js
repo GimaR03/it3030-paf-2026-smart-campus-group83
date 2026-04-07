@@ -36,15 +36,18 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, response.statusText));
+    throw new Error(getErrorMessage(payload, response));
   }
 
   return payload;
 }
 
-function getErrorMessage(payload, fallback) {
+function getErrorMessage(payload, response) {
+  const fallback =
+    response?.statusText || (response?.status ? `HTTP ${response.status}` : "Request failed");
+
   if (!payload) {
-    return fallback || "Request failed";
+    return fallback;
   }
   if (payload.fieldErrors && typeof payload.fieldErrors === "object") {
     const firstFieldError = Object.values(payload.fieldErrors)[0];
@@ -52,7 +55,7 @@ function getErrorMessage(payload, fallback) {
       return firstFieldError;
     }
   }
-  return payload.message || fallback || "Request failed";
+  return payload.message || fallback;
 }
 
 export function fetchBuildings() {
