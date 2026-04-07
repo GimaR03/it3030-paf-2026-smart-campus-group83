@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import {
+  dashboardActions,
+  portalActions,
+  roomStatuses,
+  roomTypes,
+} from "./A_constants";
+import { formatLabel, getRoomQuickNote, withSeconds } from "./A_helpers";
+import APortalView from "./A_PortalView";
+import ABookRoomView from "./A_BookRoomView";
+import ABlankView from "./A_BlankView";
+import {
   addFloor,
   createBuilding,
   createRoom,
@@ -13,70 +23,6 @@ import {
   updateFloor as updateFloorApi,
   updateRoom as updateRoomApi,
 } from "./api/campusApi";
-
-const roomTypes = [
-  "LAB",
-  "CLASSROOM",
-  "AUDITORIUM",
-  "MEETING_ROOM",
-  "OFFICE",
-  "OTHER",
-];
-
-const roomStatuses = ["ACTIVE", "INACTIVE", "MAINTENANCE"];
-const dashboardActions = [
-  {
-    id: "manage-buildings",
-    title: "Add New Building and Floor",
-    subtitle: "Open building and floor forms",
-    accent: "terracotta",
-  },
-  {
-    id: "book-room",
-    title: "Book Room",
-    subtitle: "Open room creation form",
-    accent: "teal",
-  },
-  {
-    id: "building-map",
-    title: "Building and Floor Map",
-    subtitle: "Show campus map list",
-    accent: "sky",
-  },
-  {
-    id: "rooms-status",
-    title: "Rooms Status",
-    subtitle: "Show room status dashboard",
-    accent: "leaf",
-  },
-];
-
-const portalActions = [
-  {
-    id: "book",
-    title: "Book",
-    subtitle: "Open room booking form",
-    accent: "teal",
-  },
-  {
-    id: "ticket",
-    title: "Ticket",
-    subtitle: "Open ticket and room status",
-    accent: "sky",
-  },
-  {
-    id: "admin",
-    title: "Admin",
-    subtitle: "Open admin management page",
-    accent: "terracotta",
-  },
-  {
-    id: "login",
-    title: "Login",
-    subtitle: "Open staff login panel",
-    accent: "leaf",
-  },
-];
 
 function App() {
   const [buildings, setBuildings] = useState([]);
@@ -229,7 +175,10 @@ function App() {
     [buildings, bookRoomSelectedBuildingId]
   );
 
-  const bookRoomFloors = bookRoomSelectedBuilding?.floors || [];
+  const bookRoomFloors = useMemo(
+    () => bookRoomSelectedBuilding?.floors || [],
+    [bookRoomSelectedBuilding]
+  );
   
   const bookRoomSelectedFloor = useMemo(
     () => bookRoomFloors.find((floor) => String(floor.id) === String(bookRoomSelectedFloorId)),
@@ -384,10 +333,6 @@ function App() {
     }
   }
 
-  function withSeconds(time) {
-    return time.length === 5 ? `${time}:00` : time;
-  }
-
   function clearMessages() {
     setErrorMessage("");
     setSuccessMessage("");
@@ -422,26 +367,6 @@ function App() {
       buildingId,
       floorId: "",
     }));
-  }
-
-  function formatLabel(value) {
-    return value
-      .toLowerCase()
-      .split("_")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
-  }
-
-  function getRoomQuickNote(room) {
-    if (room.status === "MAINTENANCE") {
-      return { text: "Under Maintenance", tone: "maintenance" };
-    }
-
-    if (room.status === "INACTIVE") {
-      return { text: "Unavailable", tone: "inactive" };
-    }
-
-    return { text: "Available To Book", tone: "active" };
   }
 
   async function handleEditBuilding(building) {
@@ -678,193 +603,46 @@ function App() {
 
   if (currentDashboard === "portal") {
     return (
-      <main className="dashboard-shell">
-        <div className="abstract-bg" />
-        <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
-            <span className="hero-tag">Smart Campus Access</span>
-            <h1>Smart Campus Portal</h1>
-            <p>
-              Choose an action to continue. Use Admin to open your created admin page,
-              or jump directly to booking and ticket sections.
-            </p>
-          </header>
-
-          <section className="action-grid portal-grid">
-            {portalActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                className={`action-button ${action.accent}`}
-                onClick={() => handlePortalAction(action.id)}
-              >
-                <span>{action.title}</span>
-                <small>{action.subtitle}</small>
-              </button>
-            ))}
-          </section>
-
-          {successMessage && <p className="message success">{successMessage}</p>}
-        </div>
-      </main>
+      <APortalView
+        portalActions={portalActions}
+        handlePortalAction={handlePortalAction}
+        successMessage={successMessage}
+      />
     );
   }
 
   // New Book Room Dashboard
   if (currentDashboard === "book") {
     return (
-      <main className="dashboard-shell">
-        <div className="abstract-bg" />
-        <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
-            <div className="hero-head-row">
-              <span className="hero-tag">Smart Campus Access</span>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("portal");
-                }}
-              >
-                Back To Portal
-              </button>
-            </div>
-            <h1>Book Room</h1>
-            <p>Select a building and floor to view and book available rooms.</p>
-          </header>
-
-          <div className="book-room-container">
-            <div className="book-room-selectors">
-              <div className="selector-group">
-                <label>Select Building</label>
-                <select
-                  value={bookRoomSelectedBuildingId || ""}
-                  onChange={(e) => {
-                    setBookRoomSelectedBuildingId(e.target.value);
-                    setBookRoomSelectedFloorId(null);
-                  }}
-                >
-                  <option value="">-- Choose a Building --</option>
-                  {buildings.map((building) => (
-                    <option key={building.id} value={building.id}>
-                      {building.name} (No {building.buildingNo})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {bookRoomSelectedBuilding && (
-                <div className="selector-group">
-                  <label>Select Floor</label>
-                  <select
-                    value={bookRoomSelectedFloorId || ""}
-                    onChange={(e) => setBookRoomSelectedFloorId(e.target.value)}
-                  >
-                    <option value="">-- Choose a Floor --</option>
-                    {bookRoomFloors.map((floor) => (
-                      <option key={floor.id} value={floor.id}>
-                        {floor.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {bookRoomSelectedFloor && (
-              <div className="glass-panel book-room-panel">
-                <h2>{bookRoomSelectedBuilding.name} - {bookRoomSelectedFloor.label}</h2>
-                {bookRoomRooms.length === 0 ? (
-                  <p className="empty">No rooms on this floor.</p>
-                ) : (
-                  <div className="table-wrap">
-                    <table className="compact-table">
-                      <thead>
-                        <tr>
-                          <th>Room</th>
-                          <th>Type</th>
-                          <th>Capacity</th>
-                          <th>Status</th>
-                          <th>Quick Note</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bookRoomRooms.map((room) => {
-                          const note = getRoomQuickNote(room);
-                          return (
-                            <tr key={room.id}>
-                              <td>{room.name}</td>
-                              <td>{formatLabel(room.type)}</td>
-                              <td>{room.capacity}</td>
-                              <td>
-                                <span className={`status-pill ${room.status.toLowerCase()}`}>
-                                  {formatLabel(room.status)}
-                                </span>
-                              </td>
-                              <td>
-                                <span className={`quick-note ${note.tone}`}>
-                                  {note.text}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="tiny-btn"
-                                  onClick={() => {
-                                    if (room.status !== "ACTIVE") {
-                                      setErrorMessage(`Room ${room.name} is not available for booking.`);
-                                      return;
-                                    }
-                                    setSuccessMessage(`Booking request sent for ${room.name}.`);
-                                  }}
-                                >
-                                  Book Now
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {errorMessage && <p className="message error">{errorMessage}</p>}
-            {successMessage && <p className="message success">{successMessage}</p>}
-          </div>
-        </div>
-      </main>
+      <ABookRoomView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        buildings={buildings}
+        bookRoomSelectedBuildingId={bookRoomSelectedBuildingId}
+        setBookRoomSelectedBuildingId={setBookRoomSelectedBuildingId}
+        setBookRoomSelectedFloorId={setBookRoomSelectedFloorId}
+        bookRoomSelectedBuilding={bookRoomSelectedBuilding}
+        bookRoomSelectedFloorId={bookRoomSelectedFloorId}
+        bookRoomFloors={bookRoomFloors}
+        bookRoomSelectedFloor={bookRoomSelectedFloor}
+        bookRoomRooms={bookRoomRooms}
+        getRoomQuickNote={getRoomQuickNote}
+        formatLabel={formatLabel}
+        setErrorMessage={setErrorMessage}
+        setSuccessMessage={setSuccessMessage}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
     );
   }
 
   if (currentDashboard === "blank") {
     return (
-      <main className="dashboard-shell">
-        <div className="abstract-bg" />
-        <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
-            <div className="hero-head-row">
-              <span className="hero-tag">Smart Campus Access</span>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("portal");
-                }}
-              >
-                Back To Portal
-              </button>
-            </div>
-            <h1>{blankPageTitle} Page</h1>
-            <p>This page is intentionally blank.</p>
-          </header>
-        </div>
-      </main>
+      <ABlankView
+        blankPageTitle={blankPageTitle}
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+      />
     );
   }
 
