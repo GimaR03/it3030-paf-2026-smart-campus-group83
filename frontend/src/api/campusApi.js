@@ -10,10 +10,9 @@ function toJsonHeaders(headers = {}) {
 async function request(path, options = {}) {
   let response;
   try {
-    const isFormData = options.body instanceof FormData;
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: isFormData ? options.headers : toJsonHeaders(options.headers),
+      headers: toJsonHeaders(options.headers),
     });
   } catch (error) {
     throw new Error(
@@ -99,21 +98,10 @@ export function fetchRooms() {
   return request("/rooms");
 }
 
-export function fetchTickets() {
-  return request("/tickets");
-}
-
 export function createRoom(roomData) {
   return request("/rooms", {
     method: "POST",
     body: JSON.stringify(roomData),
-  });
-}
-
-export function createTicket(ticketData) {
-  return request("/tickets", {
-    method: "POST",
-    body: ticketData,
   });
 }
 
