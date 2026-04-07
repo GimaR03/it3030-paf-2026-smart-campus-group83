@@ -52,6 +52,18 @@ function getCurrentDateTimeValue() {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
 }
 
+function formatFileSize(bytes) {
+  if (!bytes) {
+    return "0 KB";
+  }
+
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function getEmptyTicketForm() {
   return {
     title: "",
@@ -163,6 +175,11 @@ function App() {
         {}
       ),
     [myTicketHistory]
+  );
+  const selectedTicketImages = useMemo(() => Array.from(ticketForm.images || []), [ticketForm.images]);
+  const selectedTicketImageTotal = useMemo(
+    () => selectedTicketImages.reduce((sum, file) => sum + file.size, 0),
+    [selectedTicketImages]
   );
 
   const totalFloors = useMemo(
@@ -1035,10 +1052,13 @@ function App() {
             <div className="workspace-grid two-up">
               <form className="glass-panel" onSubmit={handleCreateTicket}>
                 <div className="panel-header-actions">
-                  <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
+                  <div>
+                    <p className="panel-kicker">Support Request</p>
+                    <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
+                  </div>
                   <button
                     type="button"
-                    className="tiny-btn"
+                    className="secondary-btn compact-btn"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("ticket-history");
@@ -1047,8 +1067,12 @@ function App() {
                     My Ticket History
                   </button>
                 </div>
+                <p className="summary-note ticket-intro">
+                  Fill in the issue details once, attach evidence if needed, and submit a
+                  complete request for faster support handling.
+                </p>
                 <div className="ticket-field-grid">
-                  <label>
+                  <label className="field-card">
                     Title
                     <input
                       required
@@ -1062,7 +1086,7 @@ function App() {
                       placeholder="Projector not working"
                     />
                   </label>
-                  <label>
+                  <label className="field-card">
                     Category
                     <select
                       value={ticketForm.category}
@@ -1080,7 +1104,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Priority
                     <select
                       value={ticketForm.priority}
@@ -1098,7 +1122,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Status
                     <select
                       value={ticketForm.status}
@@ -1116,7 +1140,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Building
                     <select
                       required
@@ -1137,7 +1161,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Floor Number
                     <select
                       required
@@ -1160,7 +1184,7 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Lecturer Hall or Lab Number
                     <input
                       type="text"
@@ -1177,7 +1201,7 @@ function App() {
                       Enter the hall or lab number manually.
                     </small>
                   </label>
-                  <label>
+                  <label className="field-card">
                     Created Date
                     <input
                       required
@@ -1191,7 +1215,7 @@ function App() {
                       }
                     />
                   </label>
-                  <label className="description-field">
+                  <label className="description-field field-card">
                     Description
                     <textarea
                       required
@@ -1206,9 +1230,21 @@ function App() {
                       placeholder="Explain the issue clearly so support staff can reproduce it."
                     />
                   </label>
-                  <label className="description-field">
-                    Ticket Images
+                  <label className="description-field upload-field">
+                    <span className="upload-label-row">
+                      <span>
+                        Ticket Images
+                        <small className="field-hint">
+                          Add screenshots or photos that help explain the issue.
+                        </small>
+                      </span>
+                      <span className="upload-badge">
+                        {selectedTicketImages.length} file
+                        {selectedTicketImages.length === 1 ? "" : "s"}
+                      </span>
+                    </span>
                     <input
+                      className="file-input"
                       type="file"
                       multiple
                       accept="image/*"
@@ -1220,6 +1256,20 @@ function App() {
                         }))
                       }
                     />
+                    {selectedTicketImages.length > 0 && (
+                      <div className="upload-file-list">
+                        {selectedTicketImages.map((file) => (
+                          <div key={`${file.name}-${file.size}`} className="upload-file-item">
+                            <span>{file.name}</span>
+                            <strong>{formatFileSize(file.size)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="upload-meta-row">
+                      <span>Total selected: {formatFileSize(selectedTicketImageTotal)}</span>
+                      <span>Limit: 25MB per file, 50MB total</span>
+                    </div>
                     <small className="field-hint">
                       {editingTicketId
                         ? "Existing images stay attached while editing. Add new images by creating a new ticket."
@@ -1228,7 +1278,7 @@ function App() {
                   </label>
                 </div>
                 <div className="ticket-form-actions">
-                  <button type="submit">
+                  <button type="submit" className="primary-btn">
                     {editingTicketId ? "Update Ticket" : "Submit Ticket"}
                   </button>
                   {editingTicketId && (
@@ -1242,6 +1292,49 @@ function App() {
                   )}
                 </div>
               </form>
+              <aside className="glass-panel ticket-side-panel">
+                <div className="ticket-side-top">
+                  <p className="panel-kicker">Support Flow</p>
+                  <h2>Make requests easier to understand</h2>
+                  <p className="summary-note">
+                    Better tickets get resolved faster. Keep the title specific, choose the
+                    right priority, and attach proof when the issue is visible.
+                  </p>
+                </div>
+                <div className="ticket-side-block">
+                  <h3>Quick checklist</h3>
+                  <ul className="ticket-checklist">
+                    <li>Use a short title that names the broken item or room.</li>
+                    <li>Set the building and floor before typing the room or lab number.</li>
+                    <li>Use photos only when they help the maintenance team diagnose the issue.</li>
+                  </ul>
+                </div>
+                <div className="ticket-side-block">
+                  <h3>Current form snapshot</h3>
+                  <div className="ticket-side-stats">
+                    <div>
+                      <span>Priority</span>
+                      <strong>{formatLabel(ticketForm.priority)}</strong>
+                    </div>
+                    <div>
+                      <span>Category</span>
+                      <strong>{formatLabel(ticketForm.category)}</strong>
+                    </div>
+                    <div>
+                      <span>Location</span>
+                      <strong>
+                        {selectedTicketBuilding
+                          ? `${selectedTicketBuilding.label}, Floor ${ticketForm.userId || "?"}`
+                          : "Select building"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Images</span>
+                      <strong>{selectedTicketImages.length}</strong>
+                    </div>
+                  </div>
+                </div>
+              </aside>
             </div>
           </section>
         </div>

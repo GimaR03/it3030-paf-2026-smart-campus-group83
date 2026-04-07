@@ -3,12 +3,15 @@
   --ink-soft: #3e5450;
   --surface: #f9f7f2;
   --glass: rgba(255, 255, 255, 0.86);
+  --glass-strong: rgba(255, 255, 255, 0.94);
   --line: rgba(20, 35, 31, 0.14);
   --teal: #0f887f;
+  --teal-deep: #0a5f63;
   --terracotta: #d45f3a;
   --sky: #3b83c4;
   --leaf: #3a8b52;
   --shadow: 0 18px 42px rgba(17, 33, 29, 0.16);
+  --shadow-soft: 0 12px 28px rgba(17, 33, 29, 0.09);
   --ok-bg: #ddf2df;
   --ok-ink: #1f6a37;
   --err-bg: #ffe6e3;
@@ -232,6 +235,7 @@ label {
   margin-bottom: 0.7rem;
   font-size: 0.9rem;
   color: #16322d;
+  font-weight: 600;
 }
 
 input,
@@ -245,32 +249,34 @@ input,
 select,
 textarea {
   border: 1px solid #c3d0d2;
-  border-radius: 10px;
-  padding: 0.55rem 0.62rem;
-  background: rgba(255, 255, 255, 0.86);
+  border-radius: 14px;
+  padding: 0.78rem 0.88rem;
+  background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
+  transition: border-color 130ms ease, box-shadow 130ms ease, background 130ms ease;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid rgba(15, 136, 127, 0.21);
+  outline: 2px solid rgba(15, 136, 127, 0.18);
   border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(15, 136, 127, 0.08);
 }
 
-.glass-panel button[type="submit"] {
-  border: none;
-  border-radius: 11px;
-  padding: 0.62rem 0.88rem;
-  color: #fff;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0f887f, #1b6a85);
-  cursor: pointer;
+button {
+  transition: transform 130ms ease, box-shadow 130ms ease, filter 130ms ease,
+    background 130ms ease, border-color 130ms ease;
 }
 
-.glass-panel button[type="submit"]:disabled {
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+  transform: none;
 }
 
 .room-field-grid {
@@ -305,13 +311,134 @@ textarea:focus {
   margin: 0;
 }
 
+.panel-kicker {
+  margin: 0 0 0.24rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-deep);
+}
+
 .field-hint {
   color: var(--ink-soft);
   font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .description-field {
   grid-column: 1 / -1;
+}
+
+.field-card {
+  margin-bottom: 0;
+  padding: 0.88rem;
+  border: 1px solid rgba(20, 35, 31, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 250, 249, 0.88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.ticket-intro {
+  margin-bottom: 1rem;
+}
+
+.primary-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 0.86rem 1.15rem;
+  color: #fff;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--teal), #1b6a85);
+  box-shadow: 0 14px 24px rgba(15, 136, 127, 0.22);
+  cursor: pointer;
+}
+
+.secondary-btn {
+  border: 1px solid #9fc3c6;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  background: #edf7f7;
+  color: #1d5556;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.compact-btn {
+  padding: 0.62rem 0.86rem;
+  border-radius: 12px;
+}
+
+.upload-field {
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px dashed rgba(15, 136, 127, 0.3);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(241, 250, 249, 0.96), rgba(255, 255, 255, 0.94));
+}
+
+.upload-label-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.upload-label-row > span:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.upload-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 136, 127, 0.16);
+  background: rgba(15, 136, 127, 0.08);
+  color: var(--teal-deep);
+  padding: 0.28rem 0.62rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.file-input {
+  padding: 0.72rem;
+  background: #fff;
+  border-style: dashed;
+}
+
+.upload-file-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.upload-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.62rem 0.72rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(20, 35, 31, 0.08);
+  font-size: 0.84rem;
+}
+
+.upload-file-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .map-grid {
@@ -626,21 +753,69 @@ textarea:focus {
 .ticket-form-actions {
   display: flex;
   gap: 0.6rem;
-  margin-top: 0.9rem;
-}
-
-.secondary-btn {
-  border: 1px solid #9fc3c6;
-  border-radius: 11px;
-  padding: 0.62rem 0.88rem;
-  background: #edf7f7;
-  color: #1d5556;
-  font-weight: 700;
-  cursor: pointer;
+  margin-top: 1rem;
 }
 
 .ticket-history-panel {
   margin-top: 1rem;
+}
+
+.ticket-side-panel {
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+  background:
+    radial-gradient(circle at top right, rgba(59, 131, 196, 0.11), transparent 34%),
+    linear-gradient(180deg, rgba(250, 253, 252, 0.97), rgba(242, 248, 246, 0.9));
+}
+
+.ticket-side-top h2,
+.ticket-side-block h3 {
+  margin: 0;
+}
+
+.ticket-side-block {
+  border: 1px solid rgba(20, 35, 31, 0.08);
+  border-radius: 18px;
+  padding: 0.95rem;
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.ticket-checklist {
+  margin: 0.7rem 0 0;
+  padding-left: 1.05rem;
+  color: var(--ink-soft);
+}
+
+.ticket-checklist li + li {
+  margin-top: 0.45rem;
+}
+
+.ticket-side-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
+  margin-top: 0.75rem;
+}
+
+.ticket-side-stats div {
+  padding: 0.78rem 0.8rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f6fbfa, #edf6f5);
+  border: 1px solid rgba(15, 136, 127, 0.12);
+}
+
+.ticket-side-stats span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.ticket-side-stats strong {
+  display: block;
+  margin-top: 0.24rem;
+  font-size: 0.96rem;
 }
 
 .quick-note {
@@ -867,6 +1042,10 @@ thead th {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .ticket-side-stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -890,5 +1069,11 @@ thead th {
 
   .ticket-card-head {
     flex-direction: column;
+  }
+
+  .upload-label-row,
+  .upload-file-item {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
