@@ -648,6 +648,47 @@ thead th {
   }
 }
 
+/* Book Room Dashboard Styles */
+.book-room-container {
+  margin-top: 1.5rem;
+}
+
+.book-room-selectors {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.selector-group label {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0;
+}
+
+.selector-group select {
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+}
+
+.book-room-panel {
+  margin-top: 0;
+}
+
+.book-room-panel h2 {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
 @media (max-width: 1020px) {
   .action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -667,6 +708,10 @@ thead th {
 
   .floor-insight-card header div {
     text-align: left;
+  }
+  
+  .book-room-selectors {
+    grid-template-columns: 1fr;
   }
 }
 
