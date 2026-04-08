@@ -1,4 +1,7 @@
-const API_BASE_URL = "http://localhost:8080/api/campus";
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api/campus";
+const BOOKING_API_BASE_URL =
+  process.env.REACT_APP_BOOKING_API_BASE_URL || "http://localhost:8080/api/bookings";
 
 function toJsonHeaders(headers = {}) {
   return {
@@ -21,7 +24,42 @@ async function request(path, options = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Cannot connect to backend API (${API_BASE_URL}). Make sure Spring Boot is running on port 8080.`
+      `Cannot connect to backend API (${API_BASE_URL}). Make sure Spring Boot is running.`
+    );
+  }
+
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch (error) {
+      payload = { message: text };
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(payload, response));
+  }
+
+  return payload;
+}
+
+async function bookingRequest(path, options = {}) {
+  let response;
+  try {
+    const headers =
+      options.body instanceof FormData
+        ? options.headers
+        : toJsonHeaders(options.headers);
+
+    response = await fetch(`${BOOKING_API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw new Error(
+      `Cannot connect to booking API (${BOOKING_API_BASE_URL}). Make sure Spring Boot is running.`
     );
   }
 
@@ -147,5 +185,69 @@ export function updateTicket(ticketId, ticketData) {
 export function deleteTicket(ticketId) {
   return request(`/tickets/${ticketId}`, {
     method: "DELETE",
+  });
+}
+
+export function createBookingRequest(bookingData, { userId, role }) {
+  return bookingRequest("", {
+    method: "POST",
+    headers: {
+      "X-User-Id": String(userId),
+      "X-User-Role": role,
+    },
+    body: JSON.stringify(bookingData),
+  });
+}
+
+export function fetchMyBookings({ userId, role }) {
+  return bookingRequest("/me", {
+    method: "GET",
+    headers: {
+      "X-User-Id": String(userId),
+      "X-User-Role": role,
+    },
+  });
+}
+
+export function fetchAllBookingsForAdmin(filters = {}, { role }) {
+  const params = new URLSearchParams();
+  if (filters.resourceId) {
+    params.append("resourceId", String(filters.resourceId));
+  }
+  if (filters.date) {
+    params.append("date", filters.date);
+  }
+  if (filters.status) {
+    params.append("status", filters.status);
+  }
+  if (filters.requestedByUserId) {
+    params.append("requestedByUserId", String(filters.requestedByUserId));
+  }
+
+  const query = params.toString();
+  return bookingRequest(`/admin${query ? `?${query}` : ""}`, {
+    method: "GET",
+    headers: {
+      "X-User-Role": role,
+    },
+  });
+}
+
+export function approveBooking(bookingId, { role }) {
+  return bookingRequest(`/${bookingId}/approve`, {
+    method: "PATCH",
+    headers: {
+      "X-User-Role": role,
+    },
+  });
+}
+
+export function rejectBooking(bookingId, reason, { role }) {
+  return bookingRequest(`/${bookingId}/reject`, {
+    method: "PATCH",
+    headers: {
+      "X-User-Role": role,
+    },
+    body: JSON.stringify({ reason }),
   });
 }

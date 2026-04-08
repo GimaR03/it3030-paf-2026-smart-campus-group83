@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
 import "./App.css";
 import {
   dashboardActions,
@@ -8,20 +9,30 @@ import {
 } from "./A_constants";
 import { formatLabel, getRoomQuickNote, withSeconds } from "./A_helpers";
 import APortalView from "./A_PortalView";
-import ABookRoomView from "./A_BookRoomView";
+import ABookRoomView from "./B_BookRoomView";
 import ABlankView from "./A_BlankView";
+import ALoginView from "./L_LoginView";
+import ARegisterView from "./L_RegisterView";
+import AMaintenanceView from "./M_MaintenanceView";
+import AAdminDashboardView from "./A_AdminDashboardView";
+import TTicketView from "./T_TicketView";
 import {
   addFloor,
+  approveBooking,
   createBuilding,
+  createBookingRequest,
   createRoom,
   createTicket,
   deleteTicket as deleteTicketApi,
   deleteBuilding as deleteBuildingApi,
   deleteFloor as deleteFloorApi,
   deleteRoom as deleteRoomApi,
+  fetchAllBookingsForAdmin,
   fetchBuildings,
+  fetchMyBookings,
   fetchRooms,
   fetchTickets,
+  rejectBooking,
   updateTicket as updateTicketApi,
   updateBuilding as updateBuildingApi,
   updateFloor as updateFloorApi,
@@ -45,6 +56,31 @@ const ticketBuildingOptions = [
   { value: "1", label: "Main Building", floorCount: 9 },
   { value: "2", label: "New Building", floorCount: 14 },
 ];
+const AUTH_USERS_STORAGE_KEY = "smartCampusAuthUsers";
+const NOTIFICATION_STORAGE_KEY = "smartCampusSystemNotifications";
+const DEFAULT_AUTH_USERS = [
+  {
+    fullName: "Campus Super Admin",
+    email: "cadmin@gmail.com",
+    password: "cadmin123",
+    role: "ADMIN",
+    userId: 1,
+  },
+  {
+    fullName: "Campus Admin",
+    email: "admin@gmail.com",
+    password: "admin123",
+    role: "ADMIN",
+    userId: 2,
+  },
+  {
+    fullName: "Maintenance Staff",
+    email: "maintance@gmail.com",
+    password: "maint123",
+    role: "MAINTENANCE",
+    userId: 3,
+  },
+];
 
 function getCurrentDateTimeValue() {
   const now = new Date();
@@ -67,6 +103,14 @@ function getEmptyTicketForm() {
   };
 }
 
+function parseRequiredPositiveInt(value, fieldLabel) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${fieldLabel} must be a valid positive number.`);
+  }
+  return parsed;
+}
+
 function App() {
   const [buildings, setBuildings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -84,12 +128,14 @@ function App() {
     name: "",
     floorCount: 1,
   });
+  const [editingBuildingId, setEditingBuildingId] = useState(null);
 
   const [floorForm, setFloorForm] = useState({
     buildingId: "",
     floorNumber: "",
     label: "",
   });
+  const [editingFloorId, setEditingFloorId] = useState(null);
 
   const [roomForm, setRoomForm] = useState({
     buildingId: "",
@@ -103,16 +149,90 @@ function App() {
     status: "ACTIVE",
     description: "",
   });
+  const [editingRoomId, setEditingRoomId] = useState(null);
 
   // State for the Book Room Dashboard (from portal)
   const [bookRoomSelectedBuildingId, setBookRoomSelectedBuildingId] = useState(null);
   const [bookRoomSelectedFloorId, setBookRoomSelectedFloorId] = useState(null);
   const [ticketForm, setTicketForm] = useState(() => getEmptyTicketForm());
   const [editingTicketId, setEditingTicketId] = useState(null);
+  const [latestSubmittedTicket, setLatestSubmittedTicket] = useState(null);
+  const [bookingUserId, setBookingUserId] = useState("1");
+  const [bookingForm, setBookingForm] = useState({
+    resourceId: "",
+    date: getCurrentDateTimeValue().slice(0, 10),
+    startTime: "09:00",
+    endTime: "10:00",
+    purpose: "",
+    expectedAttendees: "10",
+  });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [showBookingStatus, setShowBookingStatus] = useState(false);
+  const [myBookings, setMyBookings] = useState([]);
+  const [adminBookingFilters, setAdminBookingFilters] = useState({
+    resourceId: "",
+    date: "",
+    status: "",
+    requestedByUserId: "",
+  });
+  const [adminBookings, setAdminBookings] = useState([]);
+  const [adminBookingsLoading, setAdminBookingsLoading] = useState(false);
+  const [authUsers, setAuthUsers] = useState([]);
+  const [authUser, setAuthUser] = useState(null);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [registerForm, setRegisterForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [systemNotifications, setSystemNotifications] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  });
+  const [showAdminNotifications, setShowAdminNotifications] = useState(false);
 
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    const storedUsers = window.localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+    if (!storedUsers) {
+      setAuthUsers(DEFAULT_AUTH_USERS);
+      window.localStorage.setItem(
+        AUTH_USERS_STORAGE_KEY,
+        JSON.stringify(DEFAULT_AUTH_USERS)
+      );
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedUsers);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setAuthUsers(parsed);
+      } else {
+        setAuthUsers(DEFAULT_AUTH_USERS);
+      }
+    } catch (error) {
+      setAuthUsers(DEFAULT_AUTH_USERS);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      NOTIFICATION_STORAGE_KEY,
+      JSON.stringify(systemNotifications)
+    );
+  }, [systemNotifications]);
 
   const selectedRoomBuilding = useMemo(
     () => buildings.find((building) => String(building.id) === roomForm.buildingId),
@@ -163,6 +283,16 @@ function App() {
         {}
       ),
     [myTicketHistory]
+  );
+
+  const bookNotifications = useMemo(
+    () => systemNotifications.filter((item) => item.target === "BOOK"),
+    [systemNotifications]
+  );
+
+  const adminNotifications = useMemo(
+    () => systemNotifications.filter((item) => item.target === "ADMIN"),
+    [systemNotifications]
   );
 
   const totalFloors = useMemo(
@@ -322,28 +452,45 @@ function App() {
     event.preventDefault();
     clearMessages();
     try {
-      const newBuilding = await createBuilding({
+      const isEditing = editingBuildingId !== null;
+      const payload = {
         buildingNo: buildingForm.buildingNo.trim(),
         name: buildingForm.name.trim(),
         floorCount: Number(buildingForm.floorCount),
-      });
+      };
+
+      const savedBuilding = isEditing
+        ? await updateBuildingApi(editingBuildingId, payload)
+        : await createBuilding(payload);
 
       setBuildings((current) =>
-        [...current, newBuilding].sort((left, right) =>
-          left.buildingNo.localeCompare(right.buildingNo, undefined, { numeric: true })
-        )
+        isEditing
+          ? current
+              .map((item) => (item.id === editingBuildingId ? savedBuilding : item))
+              .sort((left, right) =>
+                left.buildingNo.localeCompare(right.buildingNo, undefined, { numeric: true })
+              )
+          : [...current, savedBuilding].sort((left, right) =>
+              left.buildingNo.localeCompare(right.buildingNo, undefined, { numeric: true })
+            )
       );
       setBuildingForm({ buildingNo: "", name: "", floorCount: 1 });
-      setSuccessMessage(`Building ${newBuilding.name} added with ${newBuilding.floors.length} floors.`);
+      setEditingBuildingId(null);
+      setSuccessMessage(
+        isEditing
+          ? `Building ${savedBuilding.name} updated successfully.`
+          : `Building ${savedBuilding.name} added with ${savedBuilding.floors.length} floors.`
+      );
       setActiveSection("manage-buildings");
+      setEditingBuildingId(null);
 
       if (!floorForm.buildingId) {
-        setFloorForm((current) => ({ ...current, buildingId: String(newBuilding.id) }));
+        setFloorForm((current) => ({ ...current, buildingId: String(savedBuilding.id) }));
       }
       if (!roomForm.buildingId) {
         setRoomForm((current) => ({
           ...current,
-          buildingId: String(newBuilding.id),
+          buildingId: String(savedBuilding.id),
           floorId: "",
         }));
       }
@@ -356,19 +503,32 @@ function App() {
     event.preventDefault();
     clearMessages();
     try {
-      const newFloor = await addFloor(Number(floorForm.buildingId), {
+      const isEditing = editingFloorId !== null;
+      const payload = {
         floorNumber: Number(floorForm.floorNumber),
         label: floorForm.label.trim(),
-      });
+      };
+
+      const savedFloor = isEditing
+        ? await updateFloorApi(editingFloorId, payload)
+        : await addFloor(Number(floorForm.buildingId), payload);
+
+      const targetBuildingId = isEditing
+        ? buildings.find((building) =>
+            building.floors.some((item) => item.id === editingFloorId)
+          )?.id || Number(floorForm.buildingId)
+        : Number(floorForm.buildingId);
 
       setBuildings((current) =>
         current.map((building) =>
-          String(building.id) === floorForm.buildingId
+          String(building.id) === String(targetBuildingId)
             ? {
                 ...building,
-                floors: [...building.floors, newFloor].sort(
-                  (a, b) => a.floorNumber - b.floorNumber
-                ),
+                floors: isEditing
+                  ? building.floors
+                      .map((item) => (item.id === editingFloorId ? savedFloor : item))
+                      .sort((a, b) => a.floorNumber - b.floorNumber)
+                  : [...building.floors, savedFloor].sort((a, b) => a.floorNumber - b.floorNumber),
               }
             : building
         )
@@ -379,7 +539,8 @@ function App() {
         floorNumber: "",
         label: "",
       }));
-      setSuccessMessage(`Floor ${newFloor.label} added.`);
+      setEditingFloorId(null);
+      setSuccessMessage(isEditing ? `Floor ${savedFloor.label} updated successfully.` : `Floor ${savedFloor.label} added.`);
       setActiveSection("manage-buildings");
     } catch (error) {
       setErrorMessage(error.message);
@@ -390,7 +551,8 @@ function App() {
     event.preventDefault();
     clearMessages();
     try {
-      const newRoom = await createRoom({
+      const isEditing = editingRoomId !== null;
+      const payload = {
         buildingId: Number(roomForm.buildingId),
         floorId: Number(roomForm.floorId),
         name: roomForm.name.trim(),
@@ -401,20 +563,61 @@ function App() {
         availabilityEnd: withSeconds(roomForm.availabilityEnd),
         status: roomForm.status,
         description: roomForm.description.trim(),
-      });
+      };
 
-      setRooms((current) => [newRoom, ...current]);
+      const savedRoom = isEditing
+        ? await updateRoomApi(editingRoomId, payload)
+        : await createRoom(payload);
+
+      if (isEditing) {
+        setRooms((current) =>
+          current.map((item) => (item.id === editingRoomId ? savedRoom : item))
+        );
+        setEditingRoomId(null);
+        setSuccessMessage(`Room ${savedRoom.name} updated successfully.`);
+      } else {
+        setRooms((current) => [savedRoom, ...current]);
+        setSuccessMessage(`Room ${savedRoom.name} created successfully.`);
+      }
       setRoomForm((current) => ({
         ...current,
         floorId: "",
         name: "",
         description: "",
       }));
-      setSuccessMessage(`Room ${newRoom.name} created successfully.`);
       setActiveSection("rooms-status");
     } catch (error) {
       setErrorMessage(error.message);
     }
+  }
+
+  function handleCancelBuildingEdit() {
+    clearMessages();
+    setEditingBuildingId(null);
+    setBuildingForm({ buildingNo: "", name: "", floorCount: 1 });
+  }
+
+  function handleCancelFloorEdit() {
+    clearMessages();
+    setEditingFloorId(null);
+    setFloorForm({ buildingId: "", floorNumber: "", label: "" });
+  }
+
+  function handleCancelRoomEdit() {
+    clearMessages();
+    setEditingRoomId(null);
+    setRoomForm({
+      buildingId: "",
+      floorId: "",
+      name: "",
+      type: "LAB",
+      capacity: 40,
+      location: "Block",
+      availabilityStart: "08:00",
+      availabilityEnd: "18:00",
+      status: "ACTIVE",
+      description: "",
+    });
   }
 
   async function handleCreateTicket(event) {
@@ -443,6 +646,7 @@ function App() {
 
       setTickets((current) => [newTicket, ...current]);
       setTicketForm(getEmptyTicketForm());
+      setLatestSubmittedTicket(newTicket);
       setSuccessMessage(`Ticket "${newTicket.title}" created successfully.`);
     } catch (error) {
       setErrorMessage(error.message);
@@ -454,16 +658,20 @@ function App() {
   }
 
   function buildTicketFormData(form) {
+    const resourceId = parseRequiredPositiveInt(form.resourceId, "Building");
+    const userId = parseRequiredPositiveInt(form.userId, "Floor Number");
+    const assignedTechnicianId = String(form.assignedTechnicianId ?? "").trim();
+
     const payload = new FormData();
     payload.append("title", form.title.trim());
     payload.append("description", form.description.trim());
     payload.append("category", form.category);
     payload.append("priority", form.priority);
     payload.append("status", form.status);
-    payload.append("resourceId", String(Number(form.resourceId)));
-    payload.append("userId", String(Number(form.userId)));
-    if (form.assignedTechnicianId) {
-      payload.append("assignedTechnicianId", form.assignedTechnicianId.trim());
+    payload.append("resourceId", String(resourceId));
+    payload.append("userId", String(userId));
+    if (assignedTechnicianId) {
+      payload.append("assignedTechnicianId", assignedTechnicianId);
     }
     payload.append("createdDate", withDateTimeSeconds(form.createdDate));
     Array.from(form.images || []).forEach((image) => {
@@ -473,15 +681,19 @@ function App() {
   }
 
   function buildTicketUpdatePayload(form) {
+    const resourceId = parseRequiredPositiveInt(form.resourceId, "Building");
+    const userId = parseRequiredPositiveInt(form.userId, "Floor Number");
+    const assignedTechnicianId = String(form.assignedTechnicianId ?? "").trim();
+
     return {
       title: form.title.trim(),
       description: form.description.trim(),
       category: form.category,
       priority: form.priority,
       status: form.status,
-      resourceId: Number(form.resourceId),
-      userId: Number(form.userId),
-      assignedTechnicianId: form.assignedTechnicianId.trim() || null,
+      resourceId,
+      userId,
+      assignedTechnicianId: assignedTechnicianId || null,
       createdDate: withDateTimeSeconds(form.createdDate),
     };
   }
@@ -517,7 +729,7 @@ function App() {
       status: ticket.status,
       resourceId: String(ticket.resourceId),
       userId: String(ticket.userId),
-      assignedTechnicianId: ticket.assignedTechnicianId || "",
+      assignedTechnicianId: String(ticket.assignedTechnicianId ?? ""),
       images: [],
       createdDate: ticket.createdDate.slice(0, 16),
     });
@@ -539,6 +751,9 @@ function App() {
     try {
       await deleteTicketApi(ticketId);
       setTickets((current) => current.filter((ticket) => ticket.id !== ticketId));
+      if (latestSubmittedTicket?.id === ticketId) {
+        setLatestSubmittedTicket(null);
+      }
       if (editingTicketId === ticketId) {
         setEditingTicketId(null);
         setTicketForm(getEmptyTicketForm());
@@ -554,7 +769,8 @@ function App() {
 
     if (actionId === "admin") {
       setCurrentDashboard("admin");
-      setActiveSection("manage-buildings");
+      setActiveSection("view-book-status");
+      loadAdminBookings();
       return;
     }
 
@@ -562,11 +778,18 @@ function App() {
       setCurrentDashboard("book");
       setBookRoomSelectedBuildingId(null);
       setBookRoomSelectedFloorId(null);
+      setShowBookingStatus(false);
+      loadMyBookings();
       return;
     }
 
     if (actionId === "ticket") {
       setCurrentDashboard("ticket");
+      return;
+    }
+
+    if (actionId === "login") {
+      setCurrentDashboard("login");
       return;
     }
 
@@ -581,6 +804,212 @@ function App() {
       buildingId,
       floorId: "",
     }));
+  }
+
+  function routeUserByRole(user) {
+    if (user.role === "ADMIN") {
+      setCurrentDashboard("admin");
+      setActiveSection("view-book-status");
+      loadAdminBookings();
+      return;
+    }
+
+    if (user.role === "MAINTENANCE") {
+      setCurrentDashboard("maintenance");
+      return;
+    }
+
+    setCurrentDashboard("book");
+    setBookRoomSelectedBuildingId(null);
+    setBookRoomSelectedFloorId(null);
+    setShowBookingStatus(false);
+    setBookingUserId(String(user.userId || 1));
+    loadMyBookings();
+  }
+
+  function handleLoginSubmit(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const email = loginForm.email.trim().toLowerCase();
+    const password = loginForm.password;
+    const found = authUsers.find(
+      (user) => user.email.toLowerCase() === email && user.password === password
+    );
+
+    if (!found) {
+      setErrorMessage("Invalid email or password.");
+      return;
+    }
+
+    setAuthUser(found);
+    setSuccessMessage(`Welcome ${found.fullName}.`);
+    routeUserByRole(found);
+  }
+
+  function handleRegisterSubmit(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const fullName = registerForm.fullName.trim();
+    const email = registerForm.email.trim().toLowerCase();
+    const password = registerForm.password;
+    const confirmPassword = registerForm.confirmPassword;
+
+    if (!fullName || !email || !password) {
+      setErrorMessage("All register fields are required.");
+      return;
+    }
+
+    if (!email.includes("@") || !email.includes(".")) {
+      setErrorMessage("Enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Password and confirm password do not match.");
+      return;
+    }
+
+    const exists = authUsers.some((user) => user.email.toLowerCase() === email);
+    if (exists) {
+      setErrorMessage("Email already registered. Please login.");
+      return;
+    }
+
+    const nextUser = {
+      fullName,
+      email,
+      password,
+      role: email === "maintance@gmail.com" ? "MAINTENANCE" : "USER",
+      userId: authUsers.length + 1,
+    };
+
+    const nextUsers = [...authUsers, nextUser];
+    setAuthUsers(nextUsers);
+    window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(nextUsers));
+
+    setRegisterForm({ fullName: "", email: "", password: "", confirmPassword: "" });
+    setLoginForm({ email, password: "" });
+    setSuccessMessage("Registration successful. Please login.");
+    setCurrentDashboard("login");
+  }
+
+  function handleLogout() {
+    setAuthUser(null);
+    clearMessages();
+    setCurrentDashboard("portal");
+  }
+
+  async function handleSubmitBooking(event) {
+    event.preventDefault();
+    clearMessages();
+
+    if (!bookingUserId) {
+      setErrorMessage("User ID is required.");
+      return;
+    }
+
+    try {
+      setBookingLoading(true);
+      const created = await createBookingRequest(
+        {
+          resourceId: Number(bookingForm.resourceId),
+          date: bookingForm.date,
+          startTime: withSeconds(bookingForm.startTime),
+          endTime: withSeconds(bookingForm.endTime),
+          purpose: bookingForm.purpose.trim(),
+          expectedAttendees: Number(bookingForm.expectedAttendees),
+        },
+        { userId: Number(bookingUserId), role: "USER" }
+      );
+
+      setSuccessMessage(`Booking request #${created.id} submitted with status ${created.status}.`);
+      setBookingForm((current) => ({
+        ...current,
+        purpose: "",
+      }));
+      await loadMyBookings();
+      setShowBookingStatus(true);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setBookingLoading(false);
+    }
+  }
+
+  async function loadMyBookings() {
+    if (!bookingUserId) {
+      setMyBookings([]);
+      return;
+    }
+
+    try {
+      const records = await fetchMyBookings({
+        userId: Number(bookingUserId),
+        role: "USER",
+      });
+      setMyBookings(records || []);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }
+
+  async function loadAdminBookings() {
+    try {
+      setAdminBookingsLoading(true);
+      const records = await fetchAllBookingsForAdmin(
+        {
+          resourceId: adminBookingFilters.resourceId,
+          date: adminBookingFilters.date,
+          status: adminBookingFilters.status,
+          requestedByUserId: adminBookingFilters.requestedByUserId,
+        },
+        { role: "ADMIN" }
+      );
+      setAdminBookings(records || []);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setAdminBookingsLoading(false);
+    }
+  }
+
+  async function handleAdminApprove(booking) {
+    clearMessages();
+
+    try {
+      await approveBooking(booking.id, { role: "ADMIN" });
+      setSuccessMessage(`Booking #${booking.id} approved.`);
+      await loadAdminBookings();
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }
+
+  async function handleAdminReject(booking) {
+    clearMessages();
+    const reason = window.prompt("Rejection reason (required)", booking.adminReason || "");
+    if (reason === null) {
+      return;
+    }
+    if (!reason.trim()) {
+      setErrorMessage("Reason is required to reject a booking.");
+      return;
+    }
+
+    try {
+      await rejectBooking(booking.id, reason.trim(), { role: "ADMIN" });
+      setSuccessMessage(`Booking #${booking.id} rejected.`);
+      await loadAdminBookings();
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   }
 
   function getTicketStatusTone(status) {
@@ -607,35 +1036,211 @@ function App() {
     return matchedBuilding ? matchedBuilding.label : `Building ${resourceId}`;
   }
 
-  async function handleEditBuilding(building) {
-    clearMessages();
-    const nextBuildingNo = window.prompt("Building No", building.buildingNo);
-    if (nextBuildingNo === null) {
+  function handleDownloadTicketPdf(ticket) {
+    if (!ticket) {
       return;
     }
 
-    const nextName = window.prompt("Building Name", building.name);
-    if (nextName === null) {
+    const document = new jsPDF();
+    const lines = [
+      "Smart Campus Ticket Details",
+      "",
+      `Ticket ID: ${ticket.id}`,
+      `Title: ${ticket.title}`,
+      `Description: ${ticket.description}`,
+      `Category: ${formatLabel(ticket.category)}`,
+      `Priority: ${formatLabel(ticket.priority)}`,
+      `Status: ${formatLabel(ticket.status)}`,
+      `Building: ${getTicketBuildingLabel(ticket.resourceId)}`,
+      `Floor Number: ${ticket.userId}`,
+      `Hall/Lab Number: ${ticket.assignedTechnicianId || "Not Provided"}`,
+      `Created Date: ${String(ticket.createdDate).replace("T", " ")}`,
+    ];
+
+    let y = 20;
+    lines.forEach((line, index) => {
+      if (index === 0) {
+        document.setFontSize(16);
+        document.text(line, 14, y);
+        y += 10;
+        document.setFontSize(11);
+        return;
+      }
+
+      const wrapped = document.splitTextToSize(line, 180);
+      document.text(wrapped, 14, y);
+      y += wrapped.length * 7;
+    });
+
+    document.save(`ticket-${ticket.id}.pdf`);
+  }
+
+  function getBuildingDetails(resourceId) {
+    const matchedBuilding = ticketBuildingOptions.find(
+      (building) => building.value === String(resourceId)
+    );
+
+    return matchedBuilding ? matchedBuilding.label : `Building ${resourceId}`;
+  }
+
+  function pushNotification(target, message, details = {}) {
+    setSystemNotifications((current) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        target,
+        message,
+        building: details.building || null,
+        floor: details.floor || null,
+        hallLab: details.hallLab || null,
+        timestamp: new Date().toLocaleString(),
+      },
+      ...current,
+    ]);
+  }
+
+  function clearBookNotifications() {
+    setSystemNotifications((current) =>
+      current.filter((notification) => notification.target !== "BOOK")
+    );
+  }
+
+  function clearAdminNotifications() {
+    setSystemNotifications((current) =>
+      current.filter((notification) => notification.target !== "ADMIN")
+    );
+  }
+
+  async function handleMaintenanceTicketAction(ticket, action) {
+    clearMessages();
+
+    const actionMeta = {
+      ACCEPT: { status: "IN_PROGRESS", label: "Accept" },
+      REJECT: { status: "CLOSED", label: "Reject" },
+      IN_PROGRESS: { status: "IN_PROGRESS", label: "In Process" },
+      RESOLVED: { status: "RESOLVED", label: "Resolved" },
+      CANCEL: { status: "CLOSED", label: "Cancel" },
+    };
+
+    const selectedAction = actionMeta[action];
+    if (!selectedAction) {
+      setErrorMessage("Unsupported maintenance action.");
       return;
     }
+
+    const nextStatus = selectedAction.status;
+    const buildingName = getBuildingDetails(ticket.resourceId);
+    const floorNumber = ticket.userId;
+    const hallLabNumber = ticket.assignedTechnicianId || "Not specified";
+    const detailText = `${buildingName} | Floor ${floorNumber} | Hall/Lab ${hallLabNumber}`;
+
+    // Optimistic UI update so notification/status appears immediately after click.
+    setTickets((current) =>
+      current.map((item) =>
+        item.id === ticket.id
+          ? {
+              ...item,
+              status: nextStatus,
+            }
+          : item
+      )
+    );
+
+    if (action === "REJECT") {
+      pushNotification(
+        "BOOK",
+        `❌ REJECTED: Ticket #${ticket.id} has been rejected. ${detailText}`,
+        {
+          building: buildingName,
+          floor: floorNumber,
+          hallLab: hallLabNumber,
+        }
+      );
+    } else if (action === "ACCEPT") {
+      pushNotification(
+        "BOOK",
+        `✅ ACCEPTED: Ticket #${ticket.id} has been accepted. ${detailText}`,
+        {
+          building: buildingName,
+          floor: floorNumber,
+          hallLab: hallLabNumber,
+        }
+      );
+    } else if (action === "IN_PROGRESS") {
+      pushNotification(
+        "BOOK",
+        `🔄 IN PROGRESS: Ticket #${ticket.id} is now being processed. ${detailText}`,
+        {
+          building: buildingName,
+          floor: floorNumber,
+          hallLab: hallLabNumber,
+        }
+      );
+    } else if (action === "RESOLVED") {
+      pushNotification(
+        "BOOK",
+        `✓ RESOLVED: Ticket #${ticket.id} has been resolved. ${detailText}`,
+        {
+          building: buildingName,
+          floor: floorNumber,
+          hallLab: hallLabNumber,
+        }
+      );
+    } else if (action === "CANCEL") {
+      pushNotification(
+        "BOOK",
+        `✗ CANCELLED: Ticket #${ticket.id} has been cancelled. ${detailText}`,
+        {
+          building: buildingName,
+          floor: floorNumber,
+          hallLab: hallLabNumber,
+        }
+      );
+    }
+
+    pushNotification(
+      "ADMIN",
+      `Maintenance ${selectedAction.label}: Ticket #${ticket.id} - ${detailText}`,
+      {
+        building: buildingName,
+        floor: floorNumber,
+        hallLab: hallLabNumber,
+      }
+    );
 
     try {
-      const updated = await updateBuildingApi(building.id, {
-        buildingNo: nextBuildingNo.trim(),
-        name: nextName.trim(),
-      });
+      const payload = {
+        title: ticket.title,
+        description: ticket.description,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: nextStatus,
+        resourceId: ticket.resourceId,
+        userId: ticket.userId,
+        assignedTechnicianId: ticket.assignedTechnicianId || null,
+        createdDate: ticket.createdDate,
+      };
 
-      setBuildings((current) =>
-        current
-          .map((item) => (item.id === building.id ? updated : item))
-          .sort((left, right) =>
-            left.buildingNo.localeCompare(right.buildingNo, undefined, { numeric: true })
-          )
+      const updated = await updateTicketApi(ticket.id, payload);
+      setTickets((current) =>
+        current.map((item) => (item.id === ticket.id ? updated : item))
       );
-      setSuccessMessage("Building updated successfully.");
+      setSuccessMessage(`Ticket #${ticket.id} updated: ${selectedAction.label}.`);
     } catch (error) {
-      setErrorMessage(error.message);
+      setSuccessMessage(
+        `Notification sent for Ticket #${ticket.id} (${selectedAction.label}). Backend sync pending.`
+      );
     }
+  }
+
+  async function handleEditBuilding(building) {
+    clearMessages();
+    setEditingBuildingId(building.id);
+    setBuildingForm({
+      buildingNo: building.buildingNo,
+      name: building.name,
+      floorCount: building.floors.length || 1,
+    });
+    setActiveSection("manage-buildings");
   }
 
   async function handleDeleteBuilding(building) {
@@ -652,6 +1257,9 @@ function App() {
       await deleteBuildingApi(building.id);
       setBuildings((current) => current.filter((item) => item.id !== building.id));
       setRooms((current) => current.filter((room) => room.buildingId !== building.id));
+      if (editingBuildingId === building.id) {
+        handleCancelBuildingEdit();
+      }
       setSuccessMessage("Building deleted successfully.");
     } catch (error) {
       setErrorMessage(error.message);
@@ -660,43 +1268,13 @@ function App() {
 
   async function handleEditFloor(floor) {
     clearMessages();
-    const nextFloorNumberValue = window.prompt(
-      "Floor Number",
-      String(floor.floorNumber)
-    );
-    if (nextFloorNumberValue === null) {
-      return;
-    }
-
-    const nextFloorNumber = Number(nextFloorNumberValue);
-    if (!Number.isInteger(nextFloorNumber) || nextFloorNumber < 1) {
-      setErrorMessage("Floor number must be a positive number.");
-      return;
-    }
-
-    const nextLabel = window.prompt("Floor Label", floor.label);
-    if (nextLabel === null) {
-      return;
-    }
-
-    try {
-      const updatedFloor = await updateFloorApi(floor.id, {
-        floorNumber: nextFloorNumber,
-        label: nextLabel.trim(),
-      });
-
-      setBuildings((current) =>
-        current.map((building) => ({
-          ...building,
-          floors: building.floors
-            .map((item) => (item.id === floor.id ? updatedFloor : item))
-            .sort((left, right) => left.floorNumber - right.floorNumber),
-        }))
-      );
-      setSuccessMessage("Floor updated successfully.");
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
+    setEditingFloorId(floor.id);
+    setFloorForm({
+      buildingId: String(floor.buildingId || floor.building?.id || ""),
+      floorNumber: String(floor.floorNumber),
+      label: floor.label,
+    });
+    setActiveSection("manage-buildings");
   }
 
   async function handleDeleteFloor(floor) {
@@ -714,6 +1292,9 @@ function App() {
         }))
       );
       setRooms((current) => current.filter((room) => room.floorId !== floor.id));
+      if (editingFloorId === floor.id) {
+        handleCancelFloorEdit();
+      }
       setSuccessMessage("Floor deleted successfully.");
     } catch (error) {
       setErrorMessage(error.message);
@@ -722,106 +1303,20 @@ function App() {
 
   async function handleEditRoom(room) {
     clearMessages();
-    const nextName = window.prompt("Room Name", room.name);
-    if (nextName === null) {
-      return;
-    }
-
-    const nextType = window.prompt(
-      `Room Type (${roomTypes.join(", ")})`,
-      room.type
-    );
-    if (nextType === null) {
-      return;
-    }
-
-    const nextCapacityValue = window.prompt("Capacity", String(room.capacity));
-    if (nextCapacityValue === null) {
-      return;
-    }
-
-    const nextLocation = window.prompt("Location", room.location);
-    if (nextLocation === null) {
-      return;
-    }
-
-    const nextStart = window.prompt(
-      "Availability Start (HH:mm)",
-      room.availabilityStart.slice(0, 5)
-    );
-    if (nextStart === null) {
-      return;
-    }
-
-    const nextEnd = window.prompt(
-      "Availability End (HH:mm)",
-      room.availabilityEnd.slice(0, 5)
-    );
-    if (nextEnd === null) {
-      return;
-    }
-
-    const nextStatus = window.prompt(
-      `Status (${roomStatuses.join(", ")})`,
-      room.status
-    );
-    if (nextStatus === null) {
-      return;
-    }
-
-    const nextDescription = window.prompt("Description", room.description);
-    if (nextDescription === null) {
-      return;
-    }
-
-    const nextBuildingIdValue = window.prompt(
-      "Building ID",
-      String(room.buildingId)
-    );
-    if (nextBuildingIdValue === null) {
-      return;
-    }
-
-    const nextFloorIdValue = window.prompt("Floor ID", String(room.floorId));
-    if (nextFloorIdValue === null) {
-      return;
-    }
-
-    const nextCapacity = Number(nextCapacityValue);
-    const nextBuildingId = Number(nextBuildingIdValue);
-    const nextFloorId = Number(nextFloorIdValue);
-
-    if (!Number.isInteger(nextCapacity) || nextCapacity < 1) {
-      setErrorMessage("Capacity must be a positive number.");
-      return;
-    }
-
-    if (!Number.isInteger(nextBuildingId) || !Number.isInteger(nextFloorId)) {
-      setErrorMessage("Building ID and Floor ID must be numeric.");
-      return;
-    }
-
-    try {
-      const updatedRoom = await updateRoomApi(room.id, {
-        buildingId: nextBuildingId,
-        floorId: nextFloorId,
-        name: nextName.trim(),
-        type: nextType.trim(),
-        capacity: nextCapacity,
-        location: nextLocation.trim(),
-        availabilityStart: withSeconds(nextStart.trim()),
-        availabilityEnd: withSeconds(nextEnd.trim()),
-        status: nextStatus.trim(),
-        description: nextDescription.trim(),
-      });
-
-      setRooms((current) =>
-        current.map((item) => (item.id === room.id ? updatedRoom : item))
-      );
-      setSuccessMessage("Room updated successfully.");
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
+    setEditingRoomId(room.id);
+    setRoomForm({
+      buildingId: String(room.buildingId),
+      floorId: String(room.floorId),
+      name: room.name,
+      type: room.type,
+      capacity: String(room.capacity),
+      location: room.location,
+      availabilityStart: room.availabilityStart.slice(0, 5),
+      availabilityEnd: room.availabilityEnd.slice(0, 5),
+      status: room.status,
+      description: room.description,
+    });
+    setActiveSection("book-room");
   }
 
   async function handleDeleteRoom(room) {
@@ -833,6 +1328,9 @@ function App() {
     try {
       await deleteRoomApi(room.id);
       setRooms((current) => current.filter((item) => item.id !== room.id));
+      if (editingRoomId === room.id) {
+        handleCancelRoomEdit();
+      }
       setSuccessMessage("Room deleted successfully.");
     } catch (error) {
       setErrorMessage(error.message);
@@ -867,9 +1365,21 @@ function App() {
         getRoomQuickNote={getRoomQuickNote}
         formatLabel={formatLabel}
         setErrorMessage={setErrorMessage}
-        setSuccessMessage={setSuccessMessage}
         errorMessage={errorMessage}
         successMessage={successMessage}
+        bookingUserId={bookingUserId}
+        setBookingUserId={setBookingUserId}
+        bookingForm={bookingForm}
+        setBookingForm={setBookingForm}
+        handleSubmitBooking={handleSubmitBooking}
+        bookingLoading={bookingLoading}
+        showBookingStatus={showBookingStatus}
+        setShowBookingStatus={setShowBookingStatus}
+        myBookings={myBookings}
+        loadMyBookings={loadMyBookings}
+        rooms={rooms}
+        bookNotifications={bookNotifications}
+        clearBookNotifications={clearBookNotifications}
       />
     );
   }
@@ -884,7 +1394,75 @@ function App() {
     );
   }
 
+  if (currentDashboard === "login") {
+    return (
+      <ALoginView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        loginForm={loginForm}
+        setLoginForm={setLoginForm}
+        handleLoginSubmit={handleLoginSubmit}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
+    );
+  }
+
+  if (currentDashboard === "register") {
+    return (
+      <ARegisterView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        registerForm={registerForm}
+        setRegisterForm={setRegisterForm}
+        handleRegisterSubmit={handleRegisterSubmit}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
+    );
+  }
+
+  if (currentDashboard === "maintenance") {
+    return (
+      <AMaintenanceView
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        handleLogout={handleLogout}
+        authUser={authUser}
+        tickets={tickets}
+        formatLabel={formatLabel}
+        getTicketBuildingLabel={getTicketBuildingLabel}
+        handleMaintenanceTicketAction={handleMaintenanceTicketAction}
+      />
+    );
+  }
+
   if (currentDashboard === "ticket-history") {
+    return (
+      <TTicketView
+        currentDashboard={currentDashboard}
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        myTicketHistory={myTicketHistory}
+        myTicketStatusCount={myTicketStatusCount}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        handleStartTicketEdit={handleStartTicketEdit}
+        handleDeleteTicket={handleDeleteTicket}
+        getTicketStatusTone={getTicketStatusTone}
+        formatLabel={formatLabel}
+        getTicketBuildingLabel={getTicketBuildingLabel}
+        selectedTicketBuilding={selectedTicketBuilding}
+        ticketFloorOptions={ticketFloorOptions}
+        ticketForm={ticketForm}
+        setTicketForm={setTicketForm}
+        editingTicketId={editingTicketId}
+        latestSubmittedTicket={latestSubmittedTicket}
+        handleCreateTicket={handleCreateTicket}
+        handleCancelTicketEdit={handleCancelTicketEdit}
+        handleDownloadTicketPdf={handleDownloadTicketPdf}
+      />
+    );
     return (
       <main className="dashboard-shell">
         <div className="abstract-bg" />
@@ -988,6 +1566,31 @@ function App() {
   }
 
   if (currentDashboard === "ticket") {
+    return (
+      <TTicketView
+        currentDashboard={currentDashboard}
+        clearMessages={clearMessages}
+        setCurrentDashboard={setCurrentDashboard}
+        myTicketHistory={myTicketHistory}
+        myTicketStatusCount={myTicketStatusCount}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        handleStartTicketEdit={handleStartTicketEdit}
+        handleDeleteTicket={handleDeleteTicket}
+        getTicketStatusTone={getTicketStatusTone}
+        formatLabel={formatLabel}
+        getTicketBuildingLabel={getTicketBuildingLabel}
+        selectedTicketBuilding={selectedTicketBuilding}
+        ticketFloorOptions={ticketFloorOptions}
+        ticketForm={ticketForm}
+        setTicketForm={setTicketForm}
+        editingTicketId={editingTicketId}
+        latestSubmittedTicket={latestSubmittedTicket}
+        handleCreateTicket={handleCreateTicket}
+        handleCancelTicketEdit={handleCancelTicketEdit}
+        handleDownloadTicketPdf={handleDownloadTicketPdf}
+      />
+    );
     return (
       <main className="dashboard-shell">
         <div className="abstract-bg" />
@@ -1250,28 +1853,149 @@ function App() {
   }
 
   return (
+    <AAdminDashboardView
+      clearMessages={clearMessages}
+      setCurrentDashboard={setCurrentDashboard}
+      handleLogout={handleLogout}
+      authUser={authUser}
+      adminNotifications={adminNotifications}
+      showAdminNotifications={showAdminNotifications}
+      setShowAdminNotifications={setShowAdminNotifications}
+      clearAdminNotifications={clearAdminNotifications}
+      buildings={buildings}
+      totalFloors={totalFloors}
+      rooms={rooms}
+      editingBuildingId={editingBuildingId}
+      editingFloorId={editingFloorId}
+      editingRoomId={editingRoomId}
+      activeSection={activeSection}
+      setActiveSection={setActiveSection}
+      isLoading={isLoading}
+      errorMessage={errorMessage}
+      successMessage={successMessage}
+      buildingForm={buildingForm}
+      setBuildingForm={setBuildingForm}
+      floorForm={floorForm}
+      setFloorForm={setFloorForm}
+      handleCreateBuilding={handleCreateBuilding}
+      handleAddFloor={handleAddFloor}
+      roomForm={roomForm}
+      setRoomForm={setRoomForm}
+      handleRoomBuildingChange={handleRoomBuildingChange}
+      selectedBuildingFloors={selectedBuildingFloors}
+      roomTypes={roomTypes}
+      selectedBuildingId={selectedBuildingId}
+      setSelectedBuildingId={setSelectedBuildingId}
+      selectedMapBuilding={selectedMapBuilding}
+      selectedBuildingStats={selectedBuildingStats}
+      selectedFloorInsights={selectedFloorInsights}
+      getRoomQuickNote={getRoomQuickNote}
+      roomStatusCount={roomStatusCount}
+      totalCapacity={totalCapacity}
+      activeCapacity={activeCapacity}
+      maintenanceCapacity={maintenanceCapacity}
+      handleEditBuilding={handleEditBuilding}
+      handleDeleteBuilding={handleDeleteBuilding}
+      handleEditFloor={handleEditFloor}
+      handleDeleteFloor={handleDeleteFloor}
+      handleCreateRoom={handleCreateRoom}
+      handleEditRoom={handleEditRoom}
+      handleDeleteRoom={handleDeleteRoom}
+      handleCancelBuildingEdit={handleCancelBuildingEdit}
+      handleCancelFloorEdit={handleCancelFloorEdit}
+      handleCancelRoomEdit={handleCancelRoomEdit}
+      loadAdminBookings={loadAdminBookings}
+      adminBookingFilters={adminBookingFilters}
+      setAdminBookingFilters={setAdminBookingFilters}
+      adminBookingsLoading={adminBookingsLoading}
+      adminBookings={adminBookings}
+      handleAdminApprove={handleAdminApprove}
+      handleAdminReject={handleAdminReject}
+    />
+    );
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
         <header className="hero-banner">
           <div className="hero-head-row">
             <span className="hero-tag">Smart Campus Control Center</span>
-            <button
-              type="button"
-              className="tiny-btn hero-back"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard("portal");
-              }}
-            >
-              Back To Portal
-            </button>
+            <div className="table-actions">
+              <button
+                type="button"
+                className="tiny-btn"
+                onClick={() => setShowAdminNotifications((current) => !current)}
+              >
+                Notification ({adminNotifications.length})
+              </button>
+              <button
+                type="button"
+                className="tiny-btn hero-back"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("portal");
+                }}
+              >
+                Back To Portal
+              </button>
+            </div>
           </div>
           <h1>Campus Command Dashboard</h1>
           <p>
             Use action buttons to open Add Building and Add Floor forms, Book Room form,
             Building and Floor Map, and Rooms Status.
           </p>
+
+          {adminNotifications.length > 0 && (
+            <article className="glass-panel" style={{ marginTop: "0.8rem" }}>
+              <div className="panel-header-actions">
+                <h2>Notification Bar</h2>
+                <button type="button" className="tiny-btn" onClick={clearAdminNotifications}>
+                  Clear
+                </button>
+              </div>
+              <ul className="ticket-images">
+                {adminNotifications.slice(0, 5).map((notice) => (
+                  <li key={notice.id}>
+                    <strong>{notice.message}</strong>
+                    <div>
+                      {notice.building ? `Building: ${notice.building}` : ""}
+                      {notice.floor ? ` | Floor: ${notice.floor}` : ""}
+                      {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
+                    </div>
+                    {notice.timestamp && <small>{notice.timestamp}</small>}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
+
+          {showAdminNotifications && (
+            <article className="glass-panel" style={{ marginTop: "0.8rem" }}>
+              <div className="panel-header-actions">
+                <h2>Admin Notifications</h2>
+                <button type="button" className="tiny-btn" onClick={clearAdminNotifications}>
+                  Clear
+                </button>
+              </div>
+              {adminNotifications.length === 0 ? (
+                <p className="empty">No notifications yet.</p>
+              ) : (
+                <ul className="ticket-images">
+                  {adminNotifications.map((notice) => (
+                    <li key={notice.id}>
+                      <strong>{notice.message}</strong>
+                      <div>
+                        {notice.building ? `Building: ${notice.building}` : ""}
+                        {notice.floor ? ` | Floor: ${notice.floor}` : ""}
+                        {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
+                      </div>
+                      {notice.timestamp && <small>{notice.timestamp}</small>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          )}
         </header>
 
         <section className="metrics-row">
@@ -1303,6 +2027,19 @@ function App() {
               <small>{action.subtitle}</small>
             </button>
           ))}
+          <button
+            type="button"
+            className={`action-button sky ${
+              activeSection === "view-book-status" ? "active" : ""
+            }`}
+            onClick={() => {
+              setActiveSection("view-book-status");
+              loadAdminBookings();
+            }}
+          >
+            <span>View Book Status</span>
+            <small>Approve or reject booking requests</small>
+          </button>
         </section>
 
         {isLoading && <p className="loading-text">Loading campus data...</p>}
@@ -1863,11 +2600,149 @@ function App() {
                 )}
               </article>
             )}
+
+            {activeSection === "view-book-status" && (
+              <article className="glass-panel">
+                <h2>Admin Booking Dashboard</h2>
+                <p className="summary-note">
+                  Review booking requests, apply filters, and approve or reject with details.
+                </p>
+
+                <div className="room-field-grid">
+                  <label>
+                    Resource ID
+                    <input
+                      type="number"
+                      min="1"
+                      value={adminBookingFilters.resourceId}
+                      onChange={(event) =>
+                        setAdminBookingFilters((current) => ({
+                          ...current,
+                          resourceId: event.target.value,
+                        }))
+                      }
+                      placeholder="All"
+                    />
+                  </label>
+                  <label>
+                    Date
+                    <input
+                      type="date"
+                      value={adminBookingFilters.date}
+                      onChange={(event) =>
+                        setAdminBookingFilters((current) => ({
+                          ...current,
+                          date: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={adminBookingFilters.status}
+                      onChange={(event) =>
+                        setAdminBookingFilters((current) => ({
+                          ...current,
+                          status: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">All</option>
+                      <option value="PENDING">PENDING</option>
+                      <option value="APPROVED">APPROVED</option>
+                      <option value="REJECTED">REJECTED</option>
+                      <option value="CANCELLED">CANCELLED</option>
+                    </select>
+                  </label>
+                  <label>
+                    User ID
+                    <input
+                      type="number"
+                      min="1"
+                      value={adminBookingFilters.requestedByUserId}
+                      onChange={(event) =>
+                        setAdminBookingFilters((current) => ({
+                          ...current,
+                          requestedByUserId: event.target.value,
+                        }))
+                      }
+                      placeholder="All"
+                    />
+                  </label>
+                </div>
+
+                <div className="table-actions" style={{ marginBottom: "0.75rem" }}>
+                  <button type="button" className="tiny-btn" onClick={loadAdminBookings}>
+                    Apply Filters
+                  </button>
+                </div>
+
+                {adminBookingsLoading ? (
+                  <p className="loading-text">Loading booking requests...</p>
+                ) : adminBookings.length === 0 ? (
+                  <p className="empty">No booking requests found.</p>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="compact-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>User</th>
+                          <th>Resource</th>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>Expected Attendance</th>
+                          <th>Status</th>
+                          <th>Approve Details</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminBookings.map((booking) => (
+                          <tr key={booking.id}>
+                            <td>{booking.id}</td>
+                            <td>{booking.requestedByUserId}</td>
+                            <td>{booking.resourceId}</td>
+                            <td>{booking.date}</td>
+                            <td>
+                              {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
+                            </td>
+                            <td>{booking.expectedAttendees}</td>
+                            <td>{booking.status}</td>
+                            <td>{booking.adminReason || "-"}</td>
+                            <td>
+                              <div className="table-actions">
+                                <button
+                                  type="button"
+                                  className="tiny-btn"
+                                  onClick={() => handleAdminApprove(booking)}
+                                  disabled={booking.status !== "PENDING"}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  className="tiny-btn danger"
+                                  onClick={() => handleAdminReject(booking)}
+                                  disabled={booking.status !== "PENDING"}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </article>
+            )}
           </section>
         )}
       </div>
     </main>
-  );
 }
 
 export default App;
