@@ -12,7 +12,7 @@ import APortalView from "./A_PortalView";
 import ABookRoomView from "./B_BookRoomView";
 import ABlankView from "./A_BlankView";
 import ALoginView from "./L_LoginView";
-import ARegisterView from "./L_RegisterView";
+import ARegisterView from "./A_RegisterView";
 import AMaintenanceView from "./M_MaintenanceView";
 import AAdminDashboardView from "./A_AdminDashboardView";
 import TTicketView from "./T_TicketView";
@@ -62,6 +62,11 @@ const DEFAULT_AUTH_USERS = [
   {
     fullName: "Campus Super Admin",
     email: "cadmin@gmail.com",
+    phoneNumber: "0710000001",
+    idNumber: "ADMIN001",
+    dateOfBirth: "1985-01-15",
+    affiliation: "Administrative Staff",
+    department: "Campus Administration",
     password: "cadmin123",
     role: "ADMIN",
     userId: 1,
@@ -69,6 +74,11 @@ const DEFAULT_AUTH_USERS = [
   {
     fullName: "Campus Admin",
     email: "admin@gmail.com",
+    phoneNumber: "0710000002",
+    idNumber: "ADMIN002",
+    dateOfBirth: "1988-06-20",
+    affiliation: "Administrative Staff",
+    department: "Operations",
     password: "admin123",
     role: "ADMIN",
     userId: 2,
@@ -76,6 +86,11 @@ const DEFAULT_AUTH_USERS = [
   {
     fullName: "Maintenance Staff",
     email: "maintance@gmail.com",
+    phoneNumber: "0710000003",
+    idNumber: "MAIN001",
+    dateOfBirth: "1990-03-10",
+    affiliation: "Maintenance Team",
+    department: "Facilities Maintenance",
     password: "maint123",
     role: "MAINTENANCE",
     userId: 3,
@@ -100,6 +115,20 @@ function getEmptyTicketForm() {
     assignedTechnicianId: "",
     images: [],
     createdDate: getCurrentDateTimeValue(),
+  };
+}
+
+function getEmptyRegisterForm() {
+  return {
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    idNumber: "",
+    dateOfBirth: "",
+    affiliation: "",
+    department: "",
+    password: "",
+    confirmPassword: "",
   };
 }
 
@@ -180,12 +209,7 @@ function App() {
   const [authUsers, setAuthUsers] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [registerForm, setRegisterForm] = useState(() => getEmptyRegisterForm());
   const [systemNotifications, setSystemNotifications] = useState(() => {
     try {
       const raw = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
@@ -853,10 +877,31 @@ function App() {
 
     const fullName = registerForm.fullName.trim();
     const email = registerForm.email.trim().toLowerCase();
+    const phoneNumber = registerForm.phoneNumber.trim();
+    const idNumber = registerForm.idNumber.trim().toUpperCase();
+    const dateOfBirth = registerForm.dateOfBirth;
+    const affiliation = registerForm.affiliation.trim();
+    const department = registerForm.department.trim();
     const password = registerForm.password;
     const confirmPassword = registerForm.confirmPassword;
+    const phonePattern = /^\d{10}$/;
+    const idPattern = /^[A-Z0-9]{6,15}$/;
+    const parsedDob = new Date(dateOfBirth);
+    const isDobValid =
+      Boolean(dateOfBirth) &&
+      !Number.isNaN(parsedDob.getTime()) &&
+      dateOfBirth < new Date().toISOString().split("T")[0];
 
-    if (!fullName || !email || !password) {
+    if (
+      !fullName ||
+      !email ||
+      !phoneNumber ||
+      !idNumber ||
+      !dateOfBirth ||
+      !affiliation ||
+      !department ||
+      !password
+    ) {
       setErrorMessage("All register fields are required.");
       return;
     }
@@ -871,6 +916,26 @@ function App() {
       return;
     }
 
+    if (!phonePattern.test(phoneNumber)) {
+      setErrorMessage("Phone number must contain exactly 10 digits.");
+      return;
+    }
+
+    if (!idPattern.test(idNumber)) {
+      setErrorMessage("ID number must contain 6 to 15 letters or numbers.");
+      return;
+    }
+
+    if (!isDobValid) {
+      setErrorMessage("Enter a valid date of birth in the past.");
+      return;
+    }
+
+    if (department.length < 2) {
+      setErrorMessage("Department must be at least 2 characters.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setErrorMessage("Password and confirm password do not match.");
       return;
@@ -882,9 +947,30 @@ function App() {
       return;
     }
 
+    const phoneExists = authUsers.some(
+      (user) => (user.phoneNumber || "").trim() === phoneNumber
+    );
+    if (phoneExists) {
+      setErrorMessage("Phone number already registered. Please use another one.");
+      return;
+    }
+
+    const idExists = authUsers.some(
+      (user) => (user.idNumber || "").trim().toUpperCase() === idNumber
+    );
+    if (idExists) {
+      setErrorMessage("ID number already registered. Please use another one.");
+      return;
+    }
+
     const nextUser = {
       fullName,
       email,
+      phoneNumber,
+      idNumber,
+      dateOfBirth,
+      affiliation,
+      department,
       password,
       role: email === "maintance@gmail.com" ? "MAINTENANCE" : "USER",
       userId: authUsers.length + 1,
@@ -894,7 +980,7 @@ function App() {
     setAuthUsers(nextUsers);
     window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(nextUsers));
 
-    setRegisterForm({ fullName: "", email: "", password: "", confirmPassword: "" });
+    setRegisterForm(getEmptyRegisterForm());
     setLoginForm({ email, password: "" });
     setSuccessMessage("Registration successful. Please login.");
     setCurrentDashboard("login");
