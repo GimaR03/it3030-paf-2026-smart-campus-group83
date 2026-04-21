@@ -188,6 +188,10 @@ export function deleteTicket(ticketId) {
   });
 }
 
+export function getRoomsAvailable() {
+  return request("/rooms/available");
+}
+
 export function createBookingRequest(bookingData, { userId, role }) {
   return bookingRequest("", {
     method: "POST",

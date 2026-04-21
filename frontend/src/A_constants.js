@@ -9,6 +9,8 @@ export const roomTypes = [
 
 export const roomStatuses = ["ACTIVE", "INACTIVE", "MAINTENANCE"];
 
+export const API_BASE_URL = "http://localhost:8080/api";
+
 export const dashboardActions = [
   {
     id: "manage-buildings",
@@ -40,7 +42,7 @@ export const portalActions = [
   {
     id: "book",
     title: "Book",
-    subtitle: "Open room booking form",
+    subtitle: "Request room booking with approval workflow",
     accent: "teal",
   },
   {

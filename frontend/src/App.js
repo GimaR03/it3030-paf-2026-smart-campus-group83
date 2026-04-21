@@ -1433,7 +1433,7 @@ function App() {
     );
   }
 
-  // New Book Room Dashboard
+  // New Booking Form Dashboard
   if (currentDashboard === "book") {
     return (
       <ABookRoomView
@@ -1998,7 +1998,9 @@ function App() {
       handleAdminApprove={handleAdminApprove}
       handleAdminReject={handleAdminReject}
     />
-    );
+  );
+
+  /*
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
@@ -2829,6 +2831,7 @@ function App() {
         )}
       </div>
     </main>
+  */
 }
 
 export default App;

@@ -1,6 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 $backendDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+<<<<<<< HEAD
+$javaHome = if ($env:JAVA_HOME) { $env:JAVA_HOME } else { "C:\Program Files\Java\jdk-23" }
+=======
 $javaHome = $null
 
 if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin\\java.exe"))) {
@@ -13,6 +16,7 @@ if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin\\java.exe"))) 
         $javaHome = "C:\\Program Files\\Java\\jdk-23"
     }
 }
+>>>>>>> main
 
 if (-not (Test-Path (Join-Path $javaHome "bin\java.exe"))) {
     Write-Error "Java not found at $javaHome. Update start-backend.ps1 with your JDK path."
