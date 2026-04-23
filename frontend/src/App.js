@@ -19,6 +19,7 @@ import TTicketView from "./T_TicketView";
 import {
   addFloor,
   approveBooking,
+  cancelBooking,
   createBuilding,
   createBookingRequest,
   createRoom,
@@ -1003,6 +1004,7 @@ function App() {
 
     try {
       setBookingLoading(true);
+      const expectedAttendeesValue = bookingForm.expectedAttendees?.trim();
       const created = await createBookingRequest(
         {
           resourceId: Number(bookingForm.resourceId),
@@ -1010,7 +1012,7 @@ function App() {
           startTime: withSeconds(bookingForm.startTime),
           endTime: withSeconds(bookingForm.endTime),
           purpose: bookingForm.purpose.trim(),
-          expectedAttendees: Number(bookingForm.expectedAttendees),
+          expectedAttendees: expectedAttendeesValue ? Number(expectedAttendeesValue) : null,
         },
         { userId: Number(bookingUserId), role: "USER" }
       );
@@ -1026,6 +1028,27 @@ function App() {
       setErrorMessage(error.message);
     } finally {
       setBookingLoading(false);
+    }
+  }
+
+  async function handleCancelMyBooking(booking) {
+    clearMessages();
+
+    if (!bookingUserId) {
+      setErrorMessage("User ID is required.");
+      return;
+    }
+
+    if (!window.confirm(`Cancel booking #${booking.id}?`)) {
+      return;
+    }
+
+    try {
+      await cancelBooking(booking.id, { userId: Number(bookingUserId), role: "USER" });
+      setSuccessMessage(`Booking #${booking.id} cancelled.`);
+      await loadMyBookings();
+    } catch (error) {
+      setErrorMessage(error.message);
     }
   }
 
@@ -1069,8 +1092,17 @@ function App() {
   async function handleAdminApprove(booking) {
     clearMessages();
 
+    const reason = window.prompt("Approval reason (required)", booking.adminReason || "");
+    if (reason === null) {
+      return;
+    }
+    if (!reason.trim()) {
+      setErrorMessage("Reason is required to approve a booking.");
+      return;
+    }
+
     try {
-      await approveBooking(booking.id, { role: "ADMIN" });
+      await approveBooking(booking.id, reason.trim(), { role: "ADMIN" });
       setSuccessMessage(`Booking #${booking.id} approved.`);
       await loadAdminBookings();
     } catch (error) {
@@ -1463,6 +1495,7 @@ function App() {
         setShowBookingStatus={setShowBookingStatus}
         myBookings={myBookings}
         loadMyBookings={loadMyBookings}
+        handleCancelMyBooking={handleCancelMyBooking}
         rooms={rooms}
         bookNotifications={bookNotifications}
         clearBookNotifications={clearBookNotifications}
@@ -2785,8 +2818,14 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {adminBookings.map((booking) => (
-                          <tr key={booking.id}>
+                        {adminBookings.map((booking) => {
+                          const detailsText =
+                            booking.status === "CANCELLED"
+                              ? booking.cancellationReason || "-"
+                              : booking.adminReason || "-";
+
+                          return (
+                            <tr key={booking.id}>
                             <td>{booking.id}</td>
                             <td>{booking.requestedByUserId}</td>
                             <td>{booking.resourceId}</td>
@@ -2794,9 +2833,9 @@ function App() {
                             <td>
                               {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
                             </td>
-                            <td>{booking.expectedAttendees}</td>
+                            <td>{booking.expectedAttendees ?? "-"}</td>
                             <td>{booking.status}</td>
-                            <td>{booking.adminReason || "-"}</td>
+                            <td>{detailsText}</td>
                             <td>
                               <div className="table-actions">
                                 <button
@@ -2818,7 +2857,8 @@ function App() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

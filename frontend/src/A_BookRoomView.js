@@ -27,6 +27,7 @@ export default function ABookRoomView({
   setShowBookingStatus,
   myBookings,
   loadMyBookings,
+  handleCancelMyBooking,
   rooms,
   bookNotifications,
   clearBookNotifications,
@@ -34,13 +35,54 @@ export default function ABookRoomView({
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showNotifications, setShowNotifications] = useState(false);
 
+  async function handleViewBookingStatus() {
+    clearMessages();
+
+    if (!bookingUserId) {
+      setErrorMessage("Enter a User ID to view booking status.");
+      return;
+    }
+
+    await loadMyBookings();
+    setStatusFilter("ALL");
+    setShowBookingStatus(true);
+
+    setTimeout(() => {
+      document.getElementById("my-booking-status")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
   const roomLookup = useMemo(() => {
+    const buildingNameById = new Map();
+    const floorMetaById = new Map();
+
+    (buildings || []).forEach((building) => {
+      buildingNameById.set(String(building.id), building.name);
+      (building.floors || []).forEach((floor) => {
+        floorMetaById.set(String(floor.id), {
+          label: floor.label,
+          buildingId: String(building.id),
+        });
+      });
+    });
+
     const map = new Map();
     (rooms || []).forEach((room) => {
-      map.set(String(room.id), room);
+      const floorMeta = floorMetaById.get(String(room.floorId));
+      const derivedBuildingName = buildingNameById.get(String(room.buildingId));
+      const derivedFloorLabel = floorMeta?.label;
+
+      map.set(String(room.id), {
+        ...room,
+        buildingName: room.buildingName || derivedBuildingName,
+        floorLabel: room.floorLabel || derivedFloorLabel,
+      });
     });
     return map;
-  }, [rooms]);
+  }, [buildings, rooms]);
 
   const filteredBookings = useMemo(() => {
     if (statusFilter === "ALL") {
@@ -106,12 +148,7 @@ export default function ABookRoomView({
             <button
               type="button"
               className="tiny-btn"
-              onClick={async () => {
-                clearMessages();
-                await loadMyBookings();
-                setStatusFilter("ALL");
-                setShowBookingStatus(true);
-              }}
+              onClick={handleViewBookingStatus}
             >
               View Booking Status
             </button>
@@ -246,7 +283,6 @@ export default function ABookRoomView({
               <label>
                 Expected Attendees
                 <input
-                  required
                   min="1"
                   type="number"
                   value={bookingForm.expectedAttendees}
@@ -256,6 +292,7 @@ export default function ABookRoomView({
                       expectedAttendees: event.target.value,
                     }))
                   }
+                  placeholder="Optional"
                 />
               </label>
               <label className="description-field">
@@ -328,6 +365,7 @@ export default function ABookRoomView({
                   <table className="compact-table">
                     <thead>
                       <tr>
+                        <th>ID</th>
                         <th>Room</th>
                         <th>Type</th>
                         <th>Capacity</th>
@@ -341,6 +379,7 @@ export default function ABookRoomView({
                         const note = getRoomQuickNote(room);
                         return (
                           <tr key={room.id}>
+                            <td>{room.id}</td>
                             <td>{room.name}</td>
                             <td>{formatLabel(room.type)}</td>
                             <td>{room.capacity}</td>
@@ -374,8 +413,22 @@ export default function ABookRoomView({
           )}
 
           {showBookingStatus && (
-            <article className="glass-panel">
-              <h2>My Booking Status</h2>
+            <article className="glass-panel" id="my-booking-status">
+              <div className="panel-header-actions">
+                <h2>My Booking Status</h2>
+                <div className="table-actions">
+                  <button type="button" className="tiny-btn" onClick={handleViewBookingStatus}>
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    className="tiny-btn"
+                    onClick={() => setShowBookingStatus(false)}
+                  >
+                    Hide
+                  </button>
+                </div>
+              </div>
               <div className="table-actions" style={{ marginBottom: "0.75rem" }}>
                 {["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"].map((status) => (
                   <button
@@ -404,25 +457,40 @@ export default function ABookRoomView({
                         <th>Expected Attendees</th>
                         <th>Purpose</th>
                         <th>Status</th>
-                        <th>Approve/Reject Details</th>
+                        <th>Details</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredBookings.map((booking) => {
                         const room = roomLookup.get(String(booking.resourceId));
+                        const detailsText =
+                          booking.status === "CANCELLED"
+                            ? booking.cancellationReason || "-"
+                            : booking.adminReason || "-";
                         return (
                           <tr key={booking.id}>
                             <td>{booking.id}</td>
-                            <td>{room?.buildingName || "-"}</td>
-                            <td>{room?.floorLabel || "-"}</td>
+                            <td>{booking.buildingName || room?.buildingName || "-"}</td>
+                            <td>{booking.floorLabel || room?.floorLabel || "-"}</td>
                             <td>{booking.date}</td>
                             <td>
                               {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
                             </td>
-                            <td>{booking.expectedAttendees}</td>
+                            <td>{booking.expectedAttendees ?? "-"}</td>
                             <td>{booking.purpose}</td>
                             <td>{booking.status}</td>
-                            <td>{booking.adminReason || "-"}</td>
+                            <td>{detailsText}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="tiny-btn danger"
+                                onClick={() => handleCancelMyBooking(booking)}
+                                disabled={booking.status !== "APPROVED"}
+                              >
+                                Cancel
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}

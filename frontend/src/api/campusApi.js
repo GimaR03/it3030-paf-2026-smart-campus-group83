@@ -233,12 +233,13 @@ export function fetchAllBookingsForAdmin(filters = {}, { role }) {
   });
 }
 
-export function approveBooking(bookingId, { role }) {
+export function approveBooking(bookingId, reason, { role }) {
   return bookingRequest(`/${bookingId}/approve`, {
     method: "PATCH",
     headers: {
       "X-User-Role": role,
     },
+    body: JSON.stringify({ reason }),
   });
 }
 
@@ -249,5 +250,17 @@ export function rejectBooking(bookingId, reason, { role }) {
       "X-User-Role": role,
     },
     body: JSON.stringify({ reason }),
+  });
+}
+
+export function cancelBooking(bookingId, { userId, role }, reason) {
+  const body = reason ? JSON.stringify({ reason }) : null;
+  return bookingRequest(`/${bookingId}/cancel`, {
+    method: "PATCH",
+    headers: {
+      "X-User-Id": String(userId),
+      ...(role ? { "X-User-Role": role } : {}),
+    },
+    ...(body ? { body } : {}),
   });
 }

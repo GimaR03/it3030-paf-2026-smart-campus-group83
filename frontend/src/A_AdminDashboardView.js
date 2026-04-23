@@ -850,8 +850,14 @@ export default function A_AdminDashboardView({
                         </tr>
                       </thead>
                       <tbody>
-                        {adminBookings.map((booking) => (
-                          <tr key={booking.id}>
+                        {adminBookings.map((booking) => {
+                          const detailsText =
+                            booking.status === "CANCELLED"
+                              ? booking.cancellationReason || "-"
+                              : booking.adminReason || "-";
+
+                          return (
+                            <tr key={booking.id}>
                             <td>{booking.id}</td>
                             <td>{booking.requestedByUserId}</td>
                             <td>{booking.resourceId}</td>
@@ -859,9 +865,9 @@ export default function A_AdminDashboardView({
                             <td>
                               {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
                             </td>
-                            <td>{booking.expectedAttendees}</td>
+                            <td>{booking.expectedAttendees ?? "-"}</td>
                             <td>{booking.status}</td>
-                            <td>{booking.adminReason || "-"}</td>
+                            <td>{detailsText}</td>
                             <td>
                               <div className="table-actions">
                                 <button
@@ -883,7 +889,8 @@ export default function A_AdminDashboardView({
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
