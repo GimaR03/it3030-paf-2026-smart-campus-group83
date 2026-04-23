@@ -91,6 +91,31 @@ export default function ABookRoomView({
     return myBookings.filter((booking) => booking.status === statusFilter);
   }, [myBookings, statusFilter]);
 
+  const selectedRoom = useMemo(
+    () => roomLookup.get(String(bookingForm.resourceId)) || null,
+    [bookingForm.resourceId, roomLookup]
+  );
+
+  const roomStatusSummary = useMemo(
+    () => ({
+      total: bookRoomRooms.length,
+      active: bookRoomRooms.filter((room) => room.status === "ACTIVE").length,
+      inactive: bookRoomRooms.filter((room) => room.status === "INACTIVE").length,
+      maintenance: bookRoomRooms.filter((room) => room.status === "MAINTENANCE").length,
+    }),
+    [bookRoomRooms]
+  );
+
+  const bookingSummary = useMemo(
+    () => ({
+      total: myBookings.length,
+      approved: myBookings.filter((booking) => booking.status === "APPROVED").length,
+      pending: myBookings.filter((booking) => booking.status === "PENDING").length,
+      cancelled: myBookings.filter((booking) => booking.status === "CANCELLED").length,
+    }),
+    [myBookings]
+  );
+
   function handleBookRoomSelect(room) {
     if (room.status !== "ACTIVE") {
       setErrorMessage(`Room ${room.name} is not available for booking.`);
@@ -109,13 +134,13 @@ export default function ABookRoomView({
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
-        <header className="hero-banner portal-hero">
+        <header className="hero-banner portal-hero booking-hero">
           <div className="hero-head-row">
             <span className="hero-tag">Smart Campus Access</span>
-            <div className="table-actions">
+            <div className="table-actions booking-top-actions">
               <button
                 type="button"
-                className="tiny-btn"
+                className="tiny-btn booking-btn booking-btn-secondary"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("ticket");
@@ -125,14 +150,14 @@ export default function ABookRoomView({
               </button>
               <button
                 type="button"
-                className="tiny-btn"
+                className="tiny-btn booking-btn booking-btn-secondary"
                 onClick={() => setShowNotifications((current) => !current)}
               >
-                Notification ({bookNotifications.length})
+                Notifications ({bookNotifications.length})
               </button>
               <button
                 type="button"
-                className="tiny-btn hero-back"
+                className="tiny-btn booking-btn booking-btn-ghost"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("portal");
@@ -142,12 +167,33 @@ export default function ABookRoomView({
               </button>
             </div>
           </div>
-          <h1>Book Room</h1>
-          <p>Select a building and floor to view and book available rooms.</p>
-          <div className="hero-head-row" style={{ marginTop: "0.8rem" }}>
+          <h1>Book Modern Halls And Rooms</h1>
+          <p>
+            Explore colorful room availability, pick the best space faster, and submit
+            booking requests with a cleaner modern experience.
+          </p>
+          <div className="booking-hero-strip">
+            <div className="booking-hero-card">
+              <span>Live rooms</span>
+              <strong>{bookRoomSelectedFloor ? roomStatusSummary.total : rooms.length}</strong>
+            </div>
+            <div className="booking-hero-card accent-teal">
+              <span>Ready to book</span>
+              <strong>{bookRoomSelectedFloor ? roomStatusSummary.active : "-"}</strong>
+            </div>
+            <div className="booking-hero-card accent-sky">
+              <span>My pending</span>
+              <strong>{bookingSummary.pending}</strong>
+            </div>
+            <div className="booking-hero-card accent-coral">
+              <span>Alerts</span>
+              <strong>{bookNotifications.length}</strong>
+            </div>
+          </div>
+          <div className="hero-head-row booking-hero-actions">
             <button
               type="button"
-              className="tiny-btn"
+              className="tiny-btn booking-btn booking-btn-primary"
               onClick={handleViewBookingStatus}
             >
               View Booking Status
@@ -155,14 +201,18 @@ export default function ABookRoomView({
           </div>
 
           {bookNotifications.length > 0 && (
-            <article className="glass-panel" style={{ marginTop: "0.8rem" }}>
+            <article className="glass-panel booking-notice-panel">
               <div className="panel-header-actions">
                 <h2>Notification Bar</h2>
-                <button type="button" className="tiny-btn" onClick={clearBookNotifications}>
+                <button
+                  type="button"
+                  className="tiny-btn booking-btn booking-btn-ghost"
+                  onClick={clearBookNotifications}
+                >
                   Clear
                 </button>
               </div>
-              <ul className="ticket-images">
+              <ul className="ticket-images booking-notification-list">
                 {bookNotifications.slice(0, 5).map((notice) => (
                   <li key={notice.id}>
                     <strong>{notice.message}</strong>
@@ -179,17 +229,21 @@ export default function ABookRoomView({
           )}
 
           {showNotifications && (
-            <article className="glass-panel" style={{ marginTop: "0.8rem" }}>
+            <article className="glass-panel booking-notice-panel">
               <div className="panel-header-actions">
                 <h2>Book Notifications</h2>
-                <button type="button" className="tiny-btn" onClick={clearBookNotifications}>
+                <button
+                  type="button"
+                  className="tiny-btn booking-btn booking-btn-ghost"
+                  onClick={clearBookNotifications}
+                >
                   Clear
                 </button>
               </div>
               {bookNotifications.length === 0 ? (
                 <p className="empty">No notifications yet.</p>
               ) : (
-                <ul className="ticket-images">
+                <ul className="ticket-images booking-notification-list">
                   {bookNotifications.map((notice) => (
                     <li key={notice.id}>
                       <strong>{notice.message}</strong>
@@ -208,115 +262,185 @@ export default function ABookRoomView({
         </header>
 
         <div className="book-room-container">
-          <form className="glass-panel" onSubmit={handleSubmitBooking}>
-            <h2>Create Booking Request</h2>
-            <div className="room-field-grid">
-              <label>
-                User ID
-                <input
-                  required
-                  min="1"
-                  type="number"
-                  value={bookingUserId}
-                  onChange={(event) => setBookingUserId(event.target.value)}
-                  placeholder="1"
-                />
-              </label>
-              <label>
-                Resource ID (Room ID)
-                <input
-                  required
-                  min="1"
-                  type="number"
-                  value={bookingForm.resourceId}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      resourceId: event.target.value,
-                    }))
-                  }
-                  placeholder="Auto fill by Book Now"
-                />
-              </label>
-              <label>
-                Date
-                <input
-                  required
-                  type="date"
-                  value={bookingForm.date}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      date: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                Start Time
-                <input
-                  required
-                  type="time"
-                  value={bookingForm.startTime}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      startTime: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                End Time
-                <input
-                  required
-                  type="time"
-                  value={bookingForm.endTime}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      endTime: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                Expected Attendees
-                <input
-                  min="1"
-                  type="number"
-                  value={bookingForm.expectedAttendees}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      expectedAttendees: event.target.value,
-                    }))
-                  }
-                  placeholder="Optional"
-                />
-              </label>
-              <label className="description-field">
-                Purpose
-                <textarea
-                  required
-                  rows="3"
-                  value={bookingForm.purpose}
-                  onChange={(event) =>
-                    setBookingForm((current) => ({
-                      ...current,
-                      purpose: event.target.value,
-                    }))
-                  }
-                  placeholder="Lecture, workshop, meeting"
-                />
-              </label>
-            </div>
-            <button type="submit" disabled={bookingLoading}>
-              {bookingLoading ? "Submitting..." : "Submit Booking Request"}
-            </button>
-          </form>
+          <section className="booking-main-grid">
+            <form className="glass-panel booking-form-panel" onSubmit={handleSubmitBooking}>
+              <div className="booking-panel-head">
+                <div>
+                  <span className="booking-section-kicker">Request studio</span>
+                  <h2>Create Booking Request</h2>
+                  <p className="summary-note">
+                    Fill the schedule details below, or tap a room from the availability list to
+                    auto-fill the room ID.
+                  </p>
+                </div>
+                <div className="booking-selection-chip">
+                  {selectedRoom ? `${selectedRoom.name} selected` : "No room selected"}
+                </div>
+              </div>
 
-          <div className="book-room-selectors">
+              <div className="booking-highlight-strip">
+                <div className="booking-highlight-card">
+                  <span>Selected room</span>
+                  <strong>{selectedRoom?.name || "Choose from below"}</strong>
+                </div>
+                <div className="booking-highlight-card">
+                  <span>Building</span>
+                  <strong>{selectedRoom?.buildingName || bookRoomSelectedBuilding?.name || "-"}</strong>
+                </div>
+                <div className="booking-highlight-card">
+                  <span>Capacity</span>
+                  <strong>{selectedRoom?.capacity || bookingForm.expectedAttendees || "-"}</strong>
+                </div>
+              </div>
+
+              <div className="room-field-grid booking-form-grid">
+                <label className="field-card">
+                  User ID
+                  <input
+                    required
+                    min="1"
+                    type="number"
+                    value={bookingUserId}
+                    onChange={(event) => setBookingUserId(event.target.value)}
+                    placeholder="1"
+                  />
+                </label>
+                <label className="field-card">
+                  Resource ID (Room ID)
+                  <input
+                    required
+                    min="1"
+                    type="number"
+                    value={bookingForm.resourceId}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        resourceId: event.target.value,
+                      }))
+                    }
+                    placeholder="Auto fill by Book Now"
+                  />
+                </label>
+                <label className="field-card">
+                  Date
+                  <input
+                    required
+                    type="date"
+                    value={bookingForm.date}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        date: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="field-card">
+                  Start Time
+                  <input
+                    required
+                    type="time"
+                    value={bookingForm.startTime}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        startTime: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="field-card">
+                  End Time
+                  <input
+                    required
+                    type="time"
+                    value={bookingForm.endTime}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        endTime: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="field-card">
+                  Expected Attendees
+                  <input
+                    min="1"
+                    type="number"
+                    value={bookingForm.expectedAttendees}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        expectedAttendees: event.target.value,
+                      }))
+                    }
+                    placeholder="Optional"
+                  />
+                </label>
+                <label className="description-field field-card">
+                  Purpose
+                  <textarea
+                    required
+                    rows="3"
+                    value={bookingForm.purpose}
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        purpose: event.target.value,
+                      }))
+                    }
+                    placeholder="Lecture, workshop, meeting"
+                  />
+                </label>
+              </div>
+
+              <div className="booking-form-actions">
+                <button
+                  type="submit"
+                  className="tiny-btn booking-btn booking-btn-primary booking-btn-large"
+                  disabled={bookingLoading}
+                >
+                  {bookingLoading ? "Submitting..." : "Submit Booking Request"}
+                </button>
+                <button
+                  type="button"
+                  className="tiny-btn booking-btn booking-btn-secondary booking-btn-large"
+                  onClick={handleViewBookingStatus}
+                >
+                  Check My Booking Status
+                </button>
+              </div>
+            </form>
+
+            <aside className="glass-panel booking-side-panel">
+              <div className="booking-panel-head">
+                <div>
+                  <span className="booking-section-kicker">Availability overview</span>
+                  <h2>Room Selection</h2>
+                </div>
+              </div>
+              <div className="booking-side-stack">
+                <div className="booking-side-card">
+                  <span>Active rooms</span>
+                  <strong>{bookRoomSelectedFloor ? roomStatusSummary.active : rooms.length}</strong>
+                </div>
+                <div className="booking-side-card">
+                  <span>Approved bookings</span>
+                  <strong>{bookingSummary.approved}</strong>
+                </div>
+                <div className="booking-side-card">
+                  <span>Cancelled bookings</span>
+                  <strong>{bookingSummary.cancelled}</strong>
+                </div>
+              </div>
+              <p className="summary-note booking-side-note">
+                Buttons are highlighted clearly so users can spot primary actions faster.
+              </p>
+            </aside>
+          </section>
+
+          <div className="book-room-selectors booking-selectors-modern">
             <div className="selector-group">
               <label>Select Building</label>
               <select
@@ -355,15 +479,31 @@ export default function ABookRoomView({
 
           {bookRoomSelectedFloor && (
             <div className="glass-panel book-room-panel">
-              <h2>
-                Building {bookRoomSelectedBuilding.buildingNo} - Floor{" "}
-                {bookRoomSelectedFloor.floorNumber ?? bookRoomSelectedFloor.label}
-              </h2>
+              <div className="booking-panel-head">
+                <div>
+                  <span className="booking-section-kicker">Availability board</span>
+                  <h2>
+                    Building {bookRoomSelectedBuilding.buildingNo} - Floor{" "}
+                    {bookRoomSelectedFloor.floorNumber ?? bookRoomSelectedFloor.label}
+                  </h2>
+                </div>
+                <div className="booking-availability-strip">
+                  <span className="booking-mini-stat available">
+                    {roomStatusSummary.active} available
+                  </span>
+                  <span className="booking-mini-stat inactive">
+                    {roomStatusSummary.inactive} inactive
+                  </span>
+                  <span className="booking-mini-stat maintenance">
+                    {roomStatusSummary.maintenance} maintenance
+                  </span>
+                </div>
+              </div>
               {bookRoomRooms.length === 0 ? (
                 <p className="empty">No rooms on this floor.</p>
               ) : (
-                <div className="table-wrap">
-                  <table className="compact-table">
+                <div className="table-wrap booking-table-shell">
+                  <table className="compact-table booking-table">
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -397,10 +537,14 @@ export default function ABookRoomView({
                             <td>
                               <button
                                 type="button"
-                                className="tiny-btn"
+                                className={`tiny-btn booking-btn ${
+                                  room.status === "ACTIVE"
+                                    ? "booking-btn-primary"
+                                    : "booking-btn-muted"
+                                }`}
                                 onClick={() => handleBookRoomSelect(room)}
                               >
-                                Book Now
+                                {room.status === "ACTIVE" ? "Book Now" : "Unavailable"}
                               </button>
                             </td>
                           </tr>
@@ -414,28 +558,37 @@ export default function ABookRoomView({
           )}
 
           {showBookingStatus && (
-            <article className="glass-panel" id="my-booking-status">
+            <article className="glass-panel booking-status-panel" id="my-booking-status">
               <div className="panel-header-actions">
-                <h2>My Booking Status</h2>
+                <div>
+                  <span className="booking-section-kicker">My requests</span>
+                  <h2>My Booking Status</h2>
+                </div>
                 <div className="table-actions">
-                  <button type="button" className="tiny-btn" onClick={handleViewBookingStatus}>
+                  <button
+                    type="button"
+                    className="tiny-btn booking-btn booking-btn-secondary"
+                    onClick={handleViewBookingStatus}
+                  >
                     Refresh
                   </button>
                   <button
                     type="button"
-                    className="tiny-btn"
+                    className="tiny-btn booking-btn booking-btn-ghost"
                     onClick={() => setShowBookingStatus(false)}
                   >
                     Hide
                   </button>
                 </div>
               </div>
-              <div className="table-actions" style={{ marginBottom: "0.75rem" }}>
+              <div className="booking-filter-row">
                 {["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"].map((status) => (
                   <button
                     key={status}
                     type="button"
-                    className={`tiny-btn ${statusFilter === status ? "hero-back" : ""}`}
+                    className={`tiny-btn booking-filter-chip ${
+                      statusFilter === status ? "active" : ""
+                    }`}
                     onClick={() => setStatusFilter(status)}
                   >
                     {status}
@@ -446,8 +599,8 @@ export default function ABookRoomView({
               {filteredBookings.length === 0 ? (
                 <p className="empty">No bookings found for this user.</p>
               ) : (
-                <div className="table-wrap">
-                  <table className="compact-table">
+                <div className="table-wrap booking-table-shell">
+                  <table className="compact-table booking-table">
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -480,12 +633,18 @@ export default function ABookRoomView({
                             </td>
                             <td>{booking.expectedAttendees ?? "-"}</td>
                             <td>{booking.purpose}</td>
-                            <td>{booking.status}</td>
+                            <td>
+                              <span
+                                className={`booking-status-badge ${booking.status.toLowerCase()}`}
+                              >
+                                {booking.status}
+                              </span>
+                            </td>
                             <td>{detailsText}</td>
                             <td>
                               <button
                                 type="button"
-                                className="tiny-btn danger"
+                                className="tiny-btn booking-btn booking-btn-danger"
                                 onClick={() => handleCancelMyBooking(booking)}
                                 disabled={booking.status !== "APPROVED"}
                               >
