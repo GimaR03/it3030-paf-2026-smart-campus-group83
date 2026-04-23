@@ -8,6 +8,9 @@ import java.time.LocalTime;
 public record BookingResponse(
         Long id,
         Long resourceId,
+        String resourceName,
+        String buildingName,
+        String floorLabel,
         LocalDate date,
         LocalTime startTime,
         LocalTime endTime,
@@ -15,6 +18,8 @@ public record BookingResponse(
         Integer expectedAttendees,
         Long requestedByUserId,
         BookingStatus status,
-        String adminReason
+        String adminReason,
+        String cancellationReason,
+        Long cancelledByUserId
 ) {
 }

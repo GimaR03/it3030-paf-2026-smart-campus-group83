@@ -24,7 +24,6 @@ public record BookingCreateRequest(
         @NotBlank(message = "Purpose is required")
         String purpose,
 
-        @NotNull(message = "Expected attendees is required")
         @Min(value = 1, message = "Expected attendees must be positive")
         Integer expectedAttendees
 ) {

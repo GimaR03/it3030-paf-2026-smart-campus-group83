@@ -1,9 +1,13 @@
 package com.smartcampus.operations_hubdemo.service;
 
+import com.smartcampus.operations_hubdemo.dto.BookingApproveRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingCreateRequest;
+import com.smartcampus.operations_hubdemo.dto.BookingCancelRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingRejectRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingResponse;
 import com.smartcampus.operations_hubdemo.model.BookingStatus;
+import com.smartcampus.operations_hubdemo.model.Room;
+import com.smartcampus.operations_hubdemo.repository.RoomRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,11 +22,19 @@ public class BookingService {
 
     private final AtomicLong sequence = new AtomicLong(1);
     private final List<BookingRecord> bookings = new ArrayList<>();
+    private final RoomRepository roomRepository;
+
+    public BookingService(RoomRepository roomRepository) {
+        this.roomRepository = roomRepository;
+    }
 
     public synchronized BookingResponse create(Long userId, BookingCreateRequest request) {
         if (!request.startTime().isBefore(request.endTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be before end time");
         }
+
+        Room room = roomRepository.findWithBuildingAndFloorById(request.resourceId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid resourceId (room not found)"));
 
         boolean overlaps = bookings.stream().anyMatch(existing ->
                 existing.resourceId.equals(request.resourceId())
@@ -38,6 +50,9 @@ public class BookingService {
         BookingRecord created = new BookingRecord();
         created.id = sequence.getAndIncrement();
         created.resourceId = request.resourceId();
+        created.resourceName = room.getName();
+        created.buildingName = room.getBuilding().getName();
+        created.floorLabel = room.getFloor().getLabel();
         created.date = request.date();
         created.startTime = request.startTime();
         created.endTime = request.endTime();
@@ -46,6 +61,8 @@ public class BookingService {
         created.requestedByUserId = userId;
         created.status = BookingStatus.PENDING;
         created.adminReason = null;
+        created.cancellationReason = null;
+        created.cancelledByUserId = null;
         bookings.add(created);
 
         return toResponse(created);
@@ -72,13 +89,13 @@ public class BookingService {
                 .toList();
     }
 
-    public synchronized BookingResponse approve(Long bookingId) {
+    public synchronized BookingResponse approve(Long bookingId, BookingApproveRequest request) {
         BookingRecord record = find(bookingId);
         if (record.status != BookingStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING bookings can be approved");
         }
         record.status = BookingStatus.APPROVED;
-        record.adminReason = null;
+        record.adminReason = request.reason().trim();
         return toResponse(record);
     }
 
@@ -88,7 +105,21 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING bookings can be rejected");
         }
         record.status = BookingStatus.REJECTED;
-        record.adminReason = request == null || request.reason() == null ? null : request.reason().trim();
+        record.adminReason = request.reason().trim();
+        return toResponse(record);
+    }
+
+    public synchronized BookingResponse cancel(Long bookingId, Long userId, boolean isAdmin, BookingCancelRequest request) {
+        BookingRecord record = find(bookingId);
+        if (record.status != BookingStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only APPROVED bookings can be cancelled");
+        }
+        if (!isAdmin && !record.requestedByUserId.equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the requester (or ADMIN) can cancel this booking");
+        }
+        record.status = BookingStatus.CANCELLED;
+        record.cancellationReason = request == null || request.reason() == null ? null : request.reason().trim();
+        record.cancelledByUserId = userId;
         return toResponse(record);
     }
 
@@ -107,6 +138,9 @@ public class BookingService {
         return new BookingResponse(
                 record.id,
                 record.resourceId,
+                record.resourceName,
+                record.buildingName,
+                record.floorLabel,
                 record.date,
                 record.startTime,
                 record.endTime,
@@ -114,13 +148,18 @@ public class BookingService {
                 record.expectedAttendees,
                 record.requestedByUserId,
                 record.status,
-                record.adminReason
+                record.adminReason,
+                record.cancellationReason,
+                record.cancelledByUserId
         );
     }
 
     private static class BookingRecord {
         private Long id;
         private Long resourceId;
+        private String resourceName;
+        private String buildingName;
+        private String floorLabel;
         private java.time.LocalDate date;
         private java.time.LocalTime startTime;
         private java.time.LocalTime endTime;
@@ -129,5 +168,7 @@ public class BookingService {
         private Long requestedByUserId;
         private BookingStatus status;
         private String adminReason;
+        private String cancellationReason;
+        private Long cancelledByUserId;
     }
 }

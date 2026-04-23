@@ -1,5 +1,7 @@
 package com.smartcampus.operations_hubdemo.controller;
 
+import com.smartcampus.operations_hubdemo.dto.BookingApproveRequest;
+import com.smartcampus.operations_hubdemo.dto.BookingCancelRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingCreateRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingRejectRequest;
 import com.smartcampus.operations_hubdemo.dto.BookingResponse;
@@ -59,20 +61,32 @@ public class BookingController {
     @PatchMapping("/{bookingId}/approve")
     public BookingResponse approve(
             @PathVariable Long bookingId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Role") String role,
+            @Valid @RequestBody BookingApproveRequest request
     ) {
         ensureAdmin(role);
-        return bookingService.approve(bookingId);
+        return bookingService.approve(bookingId, request);
     }
 
     @PatchMapping("/{bookingId}/reject")
     public BookingResponse reject(
             @PathVariable Long bookingId,
             @RequestHeader("X-User-Role") String role,
-            @RequestBody(required = false) BookingRejectRequest request
+            @Valid @RequestBody BookingRejectRequest request
     ) {
         ensureAdmin(role);
         return bookingService.reject(bookingId, request);
+    }
+
+    @PatchMapping("/{bookingId}/cancel")
+    public BookingResponse cancel(
+            @PathVariable Long bookingId,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestBody(required = false) BookingCancelRequest request
+    ) {
+        boolean isAdmin = role != null && "ADMIN".equalsIgnoreCase(role.trim());
+        return bookingService.cancel(bookingId, userId, isAdmin, request);
     }
 
     private void ensureAdmin(String role) {
