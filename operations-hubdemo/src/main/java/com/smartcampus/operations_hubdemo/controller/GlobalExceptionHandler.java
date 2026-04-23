@@ -77,6 +77,12 @@ public class GlobalExceptionHandler {
 
         // Registration-related uniqueness constraints.
         if (details.contains("campus_users")) {
+            if (details.contains("doesn't have a default value")
+                    || details.contains("unknown column")
+                    || details.contains("doesn't exist")
+                    || details.contains("column count doesn't match")) {
+                return "Registration failed because user table schema is outdated. Run the latest campus_users SQL script and try again.";
+            }
             if (details.contains("email")) {
                 return "Email already registered. Please login.";
             }

@@ -22,20 +22,8 @@ export default function ARegisterView({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
 
   const profileChecks = [
-    {
-      label: "Full profile details added",
-      valid:
-        registerForm.fullName.trim() &&
-        registerForm.email.trim() &&
-        registerForm.phoneNumber.trim() &&
-        registerForm.idNumber.trim() &&
-        registerForm.dateOfBirth &&
-        registerForm.affiliation &&
-        registerForm.department.trim(),
-    },
     {
       label: "Phone number has 10 digits",
       valid: /^\d{10}$/.test(registerForm.phoneNumber),
@@ -43,13 +31,6 @@ export default function ARegisterView({
     {
       label: "ID number format looks valid",
       valid: /^[A-Z0-9]{6,15}$/.test(registerForm.idNumber),
-    },
-    {
-      label: "Date of birth is in the past",
-      valid:
-        Boolean(registerForm.dateOfBirth) &&
-        !Number.isNaN(new Date(registerForm.dateOfBirth).getTime()) &&
-        registerForm.dateOfBirth < today,
     },
     {
       label: "Password is at least 6 characters",
@@ -305,7 +286,7 @@ export default function ARegisterView({
               <div className="stats-bar-premium register-status-card" style={{ flexDirection: "column", padding: "1.5rem" }}>
                 <span className="stat-label">Progress Readiness</span>
                 <div className="progress-radial-wrap">
-                  <span className="progress-number">{readyCount}/6</span>
+                  <span className="progress-number">{readyCount}/{profileChecks.length}</span>
                   <p>Checklist Completion</p>
                 </div>
                 <div className="reg-checklist">

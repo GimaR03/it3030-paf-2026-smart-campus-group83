@@ -2,11 +2,8 @@ package com.smartcampus.operations_hubdemo.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-
-import java.time.LocalDate;
 
 public record RegisterRequest(
         @NotBlank(message = "Full name is required")
@@ -26,9 +23,6 @@ public record RegisterRequest(
         @NotBlank(message = "ID number is required")
         @Pattern(regexp = "^[A-Z0-9]{6,15}$", message = "ID number must contain 6 to 15 letters or numbers")
         String idNumber,
-
-        @NotNull(message = "Date of birth is required")
-        LocalDate dateOfBirth,
 
         @NotBlank(message = "Affiliation is required")
         @Pattern(regexp = "^(Academic Staff|Administrative Staff)$", message = "Affiliation must be Academic Staff or Administrative Staff")

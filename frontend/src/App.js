@@ -81,7 +81,6 @@ function getEmptyRegisterForm() {
     email: "",
     phoneNumber: "",
     idNumber: "",
-    dateOfBirth: "",
     affiliation: "",
     department: "",
     password: "",
@@ -860,7 +859,6 @@ function App() {
     const email = registerForm.email.trim().toLowerCase();
     const phoneNumber = registerForm.phoneNumber.trim();
     const idNumber = registerForm.idNumber.trim().toUpperCase();
-    const dateOfBirth = registerForm.dateOfBirth;
     const affiliation = registerForm.affiliation.trim();
     const department = registerForm.department.trim();
     const password = registerForm.password;
@@ -869,18 +867,12 @@ function App() {
     const idPattern = /^[A-Z0-9]{6,15}$/;
     const sliitEmailPattern = /^[a-zA-Z0-9._%+-]+@my\.sliit\.lk$/;
     const allowedAffiliations = ["Academic Staff", "Administrative Staff"];
-    const parsedDob = new Date(dateOfBirth);
-    const isDobValid =
-      Boolean(dateOfBirth) &&
-      !Number.isNaN(parsedDob.getTime()) &&
-      dateOfBirth < new Date().toISOString().split("T")[0];
 
     if (
       !fullName ||
       !email ||
       !phoneNumber ||
       !idNumber ||
-      !dateOfBirth ||
       !affiliation ||
       !department ||
       !password
@@ -899,6 +891,13 @@ function App() {
       return;
     }
 
+    if (email.includes("admin") || email.includes("maintance") || email.includes("maintenance")) {
+      setErrorMessage(
+        "Admin and maintenance accounts are managed by the system and cannot be registered manually."
+      );
+      return;
+    }
+
     if (password.length < 6) {
       setErrorMessage("Password must be at least 6 characters.");
       return;
@@ -911,11 +910,6 @@ function App() {
 
     if (!idPattern.test(idNumber)) {
       setErrorMessage("ID number must contain 6 to 15 letters or numbers.");
-      return;
-    }
-
-    if (!isDobValid) {
-      setErrorMessage("Enter a valid date of birth in the past.");
       return;
     }
 
@@ -935,7 +929,6 @@ function App() {
         email,
         phoneNumber,
         idNumber,
-        dateOfBirth,
         affiliation,
         department,
         password,
