@@ -1,5 +1,9 @@
 data/
 .data/
+<<<<<<< HEAD
+=======
+uploads/
+>>>>>>> 87ae3f164296bcf29a3e33c5b40339d75b3f88b8
 .m2/
 target/
 *.log

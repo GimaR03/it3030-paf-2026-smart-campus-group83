@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true")
@@ -47,10 +49,17 @@ public class DataSeeder {
         Building building = buildingRepository.findByBuildingNo(buildingNo)
                 .orElseGet(() -> buildingRepository.save(new Building(buildingNo, buildingName)));
 
+<<<<<<< HEAD
         List<Integer> existingFloors = floorRepository.findByBuildingIdOrderByFloorNumberAsc(building.getId())
                 .stream()
                 .map(Floor::getFloorNumber)
                 .toList();
+=======
+        Set<Integer> existingFloors = floorRepository.findByBuildingIdOrderByFloorNumberAsc(building.getId())
+                .stream()
+                .map(Floor::getFloorNumber)
+                .collect(Collectors.toSet());
+>>>>>>> 87ae3f164296bcf29a3e33c5b40339d75b3f88b8
 
         for (int floor = 1; floor <= floorCount; floor++) {
             if (existingFloors.contains(floor)) {
