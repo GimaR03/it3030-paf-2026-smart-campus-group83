@@ -70,3 +70,26 @@ export const portalActions = [
     icon: "🔐",
   },
 ];
+
+export const ticketCategories = [
+  "EQUIPMENT",
+  "NETWORK",
+  "ELECTRICAL",
+  "PLUMBING",
+  "CLEANING",
+  "SECURITY",
+  "OTHER",
+];
+
+export const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+
+export const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+
+export const MAX_TICKET_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
+
+export const MAX_TICKET_IMAGE_REQUEST_BYTES = 50 * 1024 * 1024;
+
+export const ticketBuildingOptions = [
+  { value: "1", label: "Main Building", floorCount: 9 },
+  { value: "2", label: "New Building", floorCount: 14 },
+];
