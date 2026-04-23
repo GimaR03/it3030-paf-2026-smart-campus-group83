@@ -12,53 +12,84 @@ export const roomStatuses = ["ACTIVE", "INACTIVE", "MAINTENANCE"];
 export const dashboardActions = [
   {
     id: "manage-buildings",
-    title: "Add New Building and Floor",
-    subtitle: "Open building and floor forms",
+    title: "Buildings & Floors",
+    subtitle: "Create buildings and add floors",
     accent: "terracotta",
+    icon: "🏛️",
   },
   {
     id: "book-room",
-    title: "Book Room",
-    subtitle: "Open room creation form",
+    title: "Create Room",
+    subtitle: "Add a new room to a floor",
     accent: "teal",
+    icon: "🚪",
   },
   {
     id: "building-map",
-    title: "Building and Floor Map",
-    subtitle: "Show campus map list",
+    title: "Building Map",
+    subtitle: "Browse campus floor layout",
     accent: "sky",
+    icon: "🗺️",
   },
   {
     id: "rooms-status",
     title: "Rooms Status",
-    subtitle: "Show room status dashboard",
+    subtitle: "View all room availability",
     accent: "leaf",
+    icon: "📋",
   },
 ];
 
 export const portalActions = [
   {
     id: "book",
-    title: "Book",
-    subtitle: "Open room booking form",
+    title: "Book a Room",
+    subtitle: "Find and reserve available rooms",
     accent: "teal",
+    icon: "🏢",
   },
   {
     id: "ticket",
-    title: "Ticket",
-    subtitle: "Open ticket and room status",
+    title: "Support Ticket",
+    subtitle: "Report issues and track requests",
     accent: "sky",
+    icon: "🎫",
   },
   {
     id: "admin",
-    title: "Admin",
-    subtitle: "Open admin management page",
+    title: "Admin Panel",
+    subtitle: "Manage buildings, floors & rooms",
     accent: "terracotta",
+    icon: "⚙️",
   },
   {
     id: "login",
-    title: "Login",
-    subtitle: "Open staff login panel",
+    title: "Staff Login",
+    subtitle: "Sign in to your staff account",
     accent: "leaf",
+    icon: "🔐",
   },
+];
+
+export const ticketCategories = [
+  "EQUIPMENT",
+  "NETWORK",
+  "ELECTRICAL",
+  "PLUMBING",
+  "CLEANING",
+  "SECURITY",
+  "OTHER",
+];
+
+export const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+
+export const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+
+export const MAX_TICKET_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
+
+export const MAX_TICKET_IMAGE_REQUEST_BYTES = 50 * 1024 * 1024;
+
+export const ticketBuildingOptions = [
+  { value: "1", label: "Main Building", floorCount: 9 },
+  { value: "2", label: "New Building", floorCount: 14 },
 ];

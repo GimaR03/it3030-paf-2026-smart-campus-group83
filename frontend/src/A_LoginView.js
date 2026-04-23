@@ -44,74 +44,66 @@ export default function ALoginView({
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
-      <div className="dashboard-wrap">
-        <header className="hero-banner portal-hero">
-          <div className="hero-head-row">
-            <span className="hero-tag">Smart Campus Access</span>
-            <button
-              type="button"
-              className="tiny-btn hero-back"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard("portal");
-              }}
-            >
-              Back To Portal
-            </button>
+      <div className="dashboard-wrap portal-container">
+        <header className="hero-banner portal-hero-v2 auth-hero">
+          <div className="hero-content">
+            <span className="hero-tag">✦ Staff & Admin Portal</span>
+            <h1>Welcome Back</h1>
+            <p>
+              Access your personalized campus dashboard to manage reservations, 
+              track requests, and oversee facility operations.
+            </p>
           </div>
-          <h1>Login</h1>
-          <p>Login with your email and password to continue.</p>
+          <div className="hero-visual">
+            <div className="pulsing-orb" style={{ background: "radial-gradient(circle, var(--sky) 0%, transparent 70%)" }} />
+          </div>
         </header>
 
-        <section className="workspace">
-          <div className="workspace-grid auth-layout">
-            <aside className="auth-showcase glass-panel">
-              <div className="auth-showcase-copy">
-                <span className="auth-kicker">Welcome back</span>
-                <h2>Step into a calmer campus booking experience.</h2>
-                <p>
-                  Sign in to manage hall reservations, view requests, and keep your day moving
-                  with less friction.
-                </p>
+        <section className="portal-action-section">
+          <div className="auth-split-layout">
+            <div className="auth-info-pane">
+              <div className="section-header">
+                <h2>Why sign in?</h2>
+                <p>Unlock professional management tools</p>
               </div>
-
-              <div className="auth-highlight-list">
-                {loginHighlights.map((item) => (
-                  <article key={item.title} className="auth-highlight-card">
-                    <span>{item.eyebrow}</span>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </article>
+              <div className="auth-feature-list">
+                {loginHighlights.map((item, index) => (
+                  <div key={index} className="auth-feature-item" style={{ "--delay": `${index * 0.1}s` }}>
+                    <div className="feature-dot" />
+                    <div className="feature-text">
+                      <strong>{item.title}</strong>
+                      <p>{item.description}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-
-              <div className="auth-status-row">
-                <div>
-                  <strong>One login</strong>
-                  <span>Access bookings, tickets, and room updates in one flow.</span>
-                </div>
-                <div>
-                  <strong>Live-ready</strong>
-                  <span>Built for quick actions on desktop and mobile.</span>
+              
+              <div className="auth-demo-section stats-bar-premium" style={{ padding: "1.5rem", marginTop: "2rem", flexDirection: "column", alignItems: "flex-start" }}>
+                <span className="stat-label" style={{ marginBottom: "1rem" }}>Quick Access Demo</span>
+                <div className="demo-badge-grid">
+                  {demoUsers.map((user) => (
+                    <div key={user.email} className="demo-badge">
+                      <span>{user.role}</span>
+                      <strong>{user.email}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </aside>
+            </div>
 
-            <div className="auth-panel-shell">
-              <form className="glass-panel auth-panel auth-login-panel" onSubmit={handleLoginSubmit}>
-                <div className="auth-form-head">
-                  <span className="auth-eyebrow">User Login</span>
-                  <h2>Continue to Smart Campus</h2>
-                  <p>
-                    Use your account details below and pick up right where you left off.
-                  </p>
+            <div className="auth-form-pane">
+              <form className="portal-card-premium login-form-card" onSubmit={handleLoginSubmit} style={{ animationDelay: "0.2s", display: "block", cursor: "default" }}>
+                <div className="form-header">
+                  <h3>Secure Login</h3>
+                  <p>Enter your credentials below</p>
                 </div>
 
-                <label className="auth-field">
-                  <span>Email Address</span>
+                <div className="input-group">
+                  <label className="portal-label">Email Address</label>
                   <input
                     required
                     type="email"
+                    className="portal-input"
                     value={loginForm.email}
                     onChange={(event) =>
                       setLoginForm((current) => ({
@@ -119,16 +111,17 @@ export default function ALoginView({
                         email: event.target.value,
                       }))
                     }
-                    placeholder="name@gmail.com"
+                    placeholder="e.g. admin@campus.com"
                   />
-                </label>
+                </div>
 
-                <label className="auth-field">
-                  <span>Password</span>
-                  <div className="auth-password-row">
+                <div className="input-group">
+                  <label className="portal-label">Password</label>
+                  <div className="password-wrapper">
                     <input
                       required
                       type={showPassword ? "text" : "password"}
+                      className="portal-input"
                       value={loginForm.password}
                       onChange={(event) =>
                         setLoginForm((current) => ({
@@ -136,55 +129,63 @@ export default function ALoginView({
                           password: event.target.value,
                         }))
                       }
-                      placeholder="Enter password"
+                      placeholder="••••••••"
                     />
                     <button
                       type="button"
-                      className="auth-ghost-btn"
+                      className="password-toggle"
                       onClick={() => setShowPassword((current) => !current)}
                     >
-                      {showPassword ? "Hide" : "Show"}
+                      {showPassword ? "🙈" : "👁️"}
                     </button>
                   </div>
-                </label>
+                </div>
 
-                <div className="auth-actions">
-                  <button type="submit" className="auth-primary-btn">
-                    Login
+                <div className="form-footer-actions">
+                  <button type="submit" className="primary-btn portal-btn">
+                    Sign In
                   </button>
                   <button
                     type="button"
-                    className="auth-link-btn"
+                    className="secondary-btn portal-btn-link"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("register");
                     }}
                   >
-                    Create new account
+                    Don't have an account? <strong>Register</strong>
                   </button>
-                </div>
-
-                <div className="auth-demo-block">
-                  <div className="auth-demo-head">
-                    <h3>Demo Accounts</h3>
-                    <p>Use any of these sample users to explore the system.</p>
-                  </div>
-                  <div className="auth-demo-grid">
-                    {demoUsers.map((user) => (
-                      <article key={user.email} className="auth-demo-card">
-                        <span>{user.role}</span>
-                        <strong>{user.email}</strong>
-                      </article>
-                    ))}
-                  </div>
                 </div>
               </form>
             </div>
           </div>
-          {errorMessage && <p className="message error">{errorMessage}</p>}
-          {successMessage && <p className="message success">{successMessage}</p>}
         </section>
+
+        <div className="portal-footer-actions">
+          <button
+            type="button"
+            className="tiny-btn"
+            onClick={() => {
+              clearMessages();
+              setCurrentDashboard("portal");
+            }}
+          >
+            ← Back to Public Portal
+          </button>
+        </div>
+
+        {errorMessage && (
+          <div className="toast-message error">
+            <span>{errorMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="toast-message success">
+            <span>{successMessage}</span>
+          </div>
+        )}
       </div>
     </main>
   );
 }
+

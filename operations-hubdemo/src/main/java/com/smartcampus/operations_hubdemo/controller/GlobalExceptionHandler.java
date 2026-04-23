@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        String message = "Database constraint error. Ensure floors/rooms foreign keys reference buildings1(id).";
+        String message = resolveConstraintMessage(ex);
         ApiErrorResponse response = new ApiErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
@@ -67,6 +67,34 @@ public class GlobalExceptionHandler {
                 Map.of()
         );
         return ResponseEntity.badRequest().body(response);
+    }
+
+    private String resolveConstraintMessage(DataIntegrityViolationException ex) {
+        String details = "";
+        if (ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null) {
+            details = ex.getMostSpecificCause().getMessage().toLowerCase();
+        }
+
+        // Registration-related uniqueness constraints.
+        if (details.contains("campus_users")) {
+            if (details.contains("email")) {
+                return "Email already registered. Please login.";
+            }
+            if (details.contains("phone_number")) {
+                return "Phone number already registered. Please use another one.";
+            }
+            if (details.contains("id_number")) {
+                return "ID number already registered. Please use another one.";
+            }
+            return "Registration data conflicts with existing user records.";
+        }
+
+        // Existing building/floor/room relational constraint guidance.
+        if (details.contains("floors") || details.contains("rooms") || details.contains("buildings1")) {
+            return "Database constraint error. Ensure floors/rooms foreign keys reference buildings1(id).";
+        }
+
+        return "Database constraint error. Ensure referenced records exist and unique values are not duplicated.";
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

@@ -2,6 +2,8 @@ const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api/campus";
 const BOOKING_API_BASE_URL =
   process.env.REACT_APP_BOOKING_API_BASE_URL || "http://localhost:8080/api/bookings";
+const AUTH_API_BASE_URL =
+  process.env.REACT_APP_AUTH_API_BASE_URL || "http://localhost:8080/api/auth";
 
 function toJsonHeaders(headers = {}) {
   return {
@@ -80,6 +82,41 @@ async function bookingRequest(path, options = {}) {
   return payload;
 }
 
+async function authRequest(path, options = {}) {
+  let response;
+  try {
+    const headers =
+      options.body instanceof FormData
+        ? options.headers
+        : toJsonHeaders(options.headers);
+
+    response = await fetch(`${AUTH_API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw new Error(
+      `Cannot connect to auth API (${AUTH_API_BASE_URL}). Make sure Spring Boot is running.`
+    );
+  }
+
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch (error) {
+      payload = { message: text };
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(payload, response));
+  }
+
+  return payload;
+}
+
 function getErrorMessage(payload, response) {
   const fallback =
     response?.statusText || (response?.status ? `HTTP ${response.status}` : "Request failed");
@@ -98,6 +135,20 @@ function getErrorMessage(payload, response) {
 
 export function fetchBuildings() {
   return request("/buildings");
+}
+
+export function registerUser(userData) {
+  return authRequest("/register", {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+}
+
+export function loginUser(credentials) {
+  return authRequest("/login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
 }
 
 export function createBuilding(buildingData) {

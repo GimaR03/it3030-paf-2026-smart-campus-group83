@@ -1,11 +1,8 @@
 import { useState } from "react";
 
 const affiliationOptions = [
-  "Student",
   "Academic Staff",
   "Administrative Staff",
-  "Maintenance Team",
-  "Visitor",
 ];
 
 const registerHighlights = [
@@ -71,344 +68,289 @@ export default function ARegisterView({
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
-      <div className="dashboard-wrap">
-        <header className="hero-banner portal-hero register-hero">
-          <div className="hero-head-row">
-            <span className="hero-tag">Smart Campus Access</span>
-            <button
-              type="button"
-              className="tiny-btn hero-back"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard("login");
-              }}
-            >
-              Back To Login
-            </button>
+      <div className="dashboard-wrap portal-container">
+        <header className="hero-banner portal-hero-v2 register-hero-v2">
+          <div className="hero-content">
+            <span className="hero-tag">✦ New Account Onboarding</span>
+            <h1>Join the Ecosystem</h1>
+            <p>
+              Create your official campus identity to access advanced tools, 
+              request resources, and collaborate across departments.
+            </p>
           </div>
-          <div className="register-hero-grid">
-            <div>
-              <h1>Register</h1>
-              <p>
-                Create a complete campus profile with clear personal details, identity
-                information, and login credentials in one guided flow.
-              </p>
-            </div>
-            <div className="register-hero-highlights">
-              {registerHighlights.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-            </div>
+          <div className="hero-visual">
+            <div className="pulsing-orb" style={{ background: "radial-gradient(circle, var(--leaf) 0%, transparent 70%)" }} />
           </div>
         </header>
 
-        <section className="workspace">
-          <div className="register-experience">
-            <form className="register-form-surface" onSubmit={handleRegisterSubmit}>
-              <div className="register-form-top">
-                <span className="auth-eyebrow register-eyebrow">New Account Setup</span>
-                <h2>Build your Smart Campus account</h2>
-                <p>
-                  The registration page is designed as a guided onboarding form so each section
-                  feels easier to understand and complete.
-                </p>
-              </div>
+        <section className="portal-action-section">
+          <div className="auth-split-layout registration-layout">
+            <div className="auth-form-pane wide-pane">
+              <form className="portal-card-premium register-form-card" onSubmit={handleRegisterSubmit} style={{ animationDelay: "0.1s", display: "block", cursor: "default" }}>
+                <div className="form-header">
+                  <h3>Account Creation</h3>
+                  <p>Follow the sections to complete your profile</p>
+                </div>
 
-              <div className="register-section-grid">
-                <section className="register-card register-card-primary">
-                  <div className="register-card-head">
-                    <div>
-                      <span>01</span>
-                      <h3>Personal Identity</h3>
+                <div className="registration-grid">
+                  {/* Section 1: Identity */}
+                  <div className="reg-section">
+                    <div className="reg-section-head">
+                      <span className="reg-step">01</span>
+                      <h4>Identity Details</h4>
                     </div>
-                    <p>These details help clearly identify the user account.</p>
-                  </div>
-
-                  <div className="auth-form-split">
-                    <label className="auth-field">
-                      <span>Full Name</span>
-                      <input
-                        required
-                        value={registerForm.fullName}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            fullName: event.target.value,
-                          }))
-                        }
-                        placeholder="John Silva"
-                      />
-                    </label>
-
-                    <label className="auth-field">
-                      <span>Email Address</span>
-                      <input
-                        required
-                        type="email"
-                        value={registerForm.email}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            email: event.target.value,
-                          }))
-                        }
-                        placeholder="user@gmail.com"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="auth-form-split">
-                    <label className="auth-field">
-                      <span>Phone Number</span>
-                      <input
-                        required
-                        inputMode="numeric"
-                        maxLength={10}
-                        value={registerForm.phoneNumber}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            phoneNumber: event.target.value.replace(/\D/g, "").slice(0, 10),
-                          }))
-                        }
-                        placeholder="0712345678"
-                      />
-                      <small className="auth-field-note">Must contain exactly 10 digits.</small>
-                    </label>
-
-                    <label className="auth-field">
-                      <span>ID Number</span>
-                      <input
-                        required
-                        value={registerForm.idNumber}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            idNumber: event.target.value
-                              .toUpperCase()
-                              .replace(/[^A-Z0-9]/g, "")
-                              .slice(0, 15),
-                          }))
-                        }
-                        placeholder="199912345678"
-                      />
-                      <small className="auth-field-note">
-                        Use 6 to 15 letters or numbers only.
-                      </small>
-                    </label>
-                  </div>
-                </section>
-
-                <section className="register-card">
-                  <div className="register-card-head">
-                    <div>
-                      <span>02</span>
-                      <h3>Campus Profile</h3>
+                    <div className="input-grid-2">
+                      <div className="input-group">
+                        <label className="portal-label">Full Name</label>
+                        <input
+                          required
+                          className="portal-input"
+                          value={registerForm.fullName}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              fullName: event.target.value,
+                            }))
+                          }
+                          placeholder="John Doe"
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label className="portal-label">Email Address</label>
+                        <input
+                          required
+                          type="email"
+                          className="portal-input"
+                          value={registerForm.email}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              email: event.target.value,
+                            }))
+                          }
+                          placeholder="john@campus.com"
+                        />
+                        <small className="auth-field-note">
+                          Use your SLIIT email in this format: username@my.sliit.lk
+                        </small>
+                      </div>
                     </div>
-                    <p>These details help place the user in the right campus context.</p>
                   </div>
 
-                  <div className="auth-form-split">
-                    <label className="auth-field">
-                      <span>Date of Birth</span>
-                      <input
-                        required
-                        type="date"
-                        max={today}
-                        value={registerForm.dateOfBirth}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            dateOfBirth: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <label className="auth-field">
-                      <span>Affiliation</span>
-                      <select
-                        required
-                        value={registerForm.affiliation}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            affiliation: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">Select affiliation</option>
-                        {affiliationOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  <label className="auth-field">
-                    <span>Faculty / Department</span>
-                    <input
-                      required
-                      value={registerForm.department}
-                      onChange={(event) =>
-                        setRegisterForm((current) => ({
-                          ...current,
-                          department: event.target.value,
-                        }))
-                      }
-                      placeholder="Computing, Engineering, Administration..."
-                    />
-                  </label>
-
-                  <div className="register-inline-note">
-                    <strong>Profile tip</strong>
-                    <p>
-                      Accurate department and affiliation details make approvals, bookings, and
-                      support flows easier later.
-                    </p>
-                  </div>
-                </section>
-
-                <section className="register-card register-card-security">
-                  <div className="register-card-head">
-                    <div>
-                      <span>03</span>
-                      <h3>Security Access</h3>
+                  {/* Section 2: Contact & ID */}
+                  <div className="reg-section">
+                    <div className="reg-section-head">
+                      <span className="reg-step">02</span>
+                      <h4>Verification</h4>
                     </div>
-                    <p>Create login credentials for your new account.</p>
+                    <div className="input-grid-2">
+                      <div className="input-group">
+                        <label className="portal-label">Phone Number</label>
+                        <input
+                          required
+                          className="portal-input"
+                          maxLength={10}
+                          value={registerForm.phoneNumber}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              phoneNumber: event.target.value.replace(/\D/g, ""),
+                            }))
+                          }
+                          placeholder="07XXXXXXXX"
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label className="portal-label">Campus ID Number</label>
+                        <input
+                          required
+                          className="portal-input"
+                          value={registerForm.idNumber}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              idNumber: event.target.value.toUpperCase(),
+                            }))
+                          }
+                          placeholder="CID-XXXXXX"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <label className="auth-field">
-                    <span>Password</span>
-                    <div className="auth-password-row">
-                      <input
-                        required
-                        type={showPassword ? "text" : "password"}
-                        value={registerForm.password}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            password: event.target.value,
-                          }))
-                        }
-                        placeholder="At least 6 characters"
-                      />
-                      <button
-                        type="button"
-                        className="auth-ghost-btn"
-                        onClick={() => setShowPassword((current) => !current)}
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </button>
+                  {/* Section 3: Affiliation */}
+                  <div className="reg-section">
+                    <div className="reg-section-head">
+                      <span className="reg-step">03</span>
+                      <h4>Campus Context</h4>
                     </div>
-                  </label>
-
-                  <label className="auth-field">
-                    <span>Confirm Password</span>
-                    <div className="auth-password-row">
-                      <input
-                        required
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={registerForm.confirmPassword}
-                        onChange={(event) =>
-                          setRegisterForm((current) => ({
-                            ...current,
-                            confirmPassword: event.target.value,
-                          }))
-                        }
-                        placeholder="Re-enter password"
-                      />
-                      <button
-                        type="button"
-                        className="auth-ghost-btn"
-                        onClick={() => setShowConfirmPassword((current) => !current)}
-                      >
-                        {showConfirmPassword ? "Hide" : "Show"}
-                      </button>
+                    <div className="input-grid-2">
+                      <div className="input-group">
+                        <label className="portal-label">Affiliation</label>
+                        <select
+                          required
+                          className="portal-input"
+                          value={registerForm.affiliation}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              affiliation: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Select Role</option>
+                          {affiliationOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <label className="portal-label">Department</label>
+                        <input
+                          required
+                          className="portal-input"
+                          value={registerForm.department}
+                          onChange={(event) =>
+                            setRegisterForm((current) => ({
+                              ...current,
+                              department: event.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Computer Science"
+                        />
+                      </div>
                     </div>
-                  </label>
-                </section>
-              </div>
+                  </div>
 
-              <div className="register-actions-bar">
-                <div className="auth-actions">
-                  <button type="submit" className="auth-primary-btn register-submit-btn">
-                    Create Account
+                  {/* Section 4: Security */}
+                  <div className="reg-section">
+                    <div className="reg-section-head">
+                      <span className="reg-step">04</span>
+                      <h4>Security Access</h4>
+                    </div>
+                    <div className="input-grid-2">
+                      <div className="input-group">
+                        <label className="portal-label">Password</label>
+                        <div className="password-wrapper">
+                          <input
+                            required
+                            type={showPassword ? "text" : "password"}
+                            className="portal-input"
+                            value={registerForm.password}
+                            onChange={(event) =>
+                              setRegisterForm((current) => ({
+                                ...current,
+                                password: event.target.value,
+                              }))
+                            }
+                            placeholder="At least 6 chars"
+                          />
+                          <button
+                            type="button"
+                            className="password-toggle"
+                            onClick={() => setShowPassword((current) => !current)}
+                          >
+                            {showPassword ? "🙈" : "👁️"}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="input-group">
+                        <label className="portal-label">Confirm Password</label>
+                        <div className="password-wrapper">
+                          <input
+                            required
+                            type={showConfirmPassword ? "text" : "password"}
+                            className="portal-input"
+                            value={registerForm.confirmPassword}
+                            onChange={(event) =>
+                              setRegisterForm((current) => ({
+                                ...current,
+                                confirmPassword: event.target.value,
+                              }))
+                            }
+                            placeholder="Match password"
+                          />
+                          <button
+                            type="button"
+                            className="password-toggle"
+                            onClick={() => setShowConfirmPassword((current) => !current)}
+                          >
+                            {showConfirmPassword ? "🙈" : "👁️"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-footer-actions registration-footer">
+                  <button type="submit" className="primary-btn portal-btn wide-btn">
+                    Complete Registration
                   </button>
                   <button
                     type="button"
-                    className="auth-link-btn"
+                    className="secondary-btn portal-btn-link"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("login");
                     }}
                   >
-                    Already have an account?
+                    Already have an account? <strong>Login</strong>
                   </button>
                 </div>
+              </form>
+            </div>
 
-                <div className="auth-mini-note register-mini-note">
-                  <strong>Next step</strong>
-                  <p>
-                    After successful registration, you will be redirected to the login page to
-                    sign in with your new details.
-                  </p>
+            <aside className="auth-info-pane registration-side">
+              <div className="stats-bar-premium register-status-card" style={{ flexDirection: "column", padding: "1.5rem" }}>
+                <span className="stat-label">Progress Readiness</span>
+                <div className="progress-radial-wrap">
+                  <span className="progress-number">{readyCount}/6</span>
+                  <p>Checklist Completion</p>
                 </div>
-              </div>
-            </form>
-
-            <aside className="register-sidebar">
-              <div className="register-summary-card glass-panel">
-                <span className="register-side-kicker">Registration Status</span>
-                <h3>{readyCount} of 6 checks ready</h3>
-                <p>
-                  The sidebar gives users a cleaner sense of progress while they complete the
-                  form.
-                </p>
-                <div className="register-progress-track">
-                  <div
-                    className="register-progress-bar"
-                    style={{ width: `${(readyCount / profileChecks.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="register-check-card glass-panel">
-                <h3>Readiness Checklist</h3>
-                <div className="register-check-stack">
-                  {profileChecks.map((check) => (
-                    <article
-                      key={check.label}
-                      className={`register-check-item ${check.valid ? "valid" : ""}`}
-                    >
-                      <span>{check.valid ? "Ready" : "Pending"}</span>
-                      <strong>{check.label}</strong>
-                    </article>
+                <div className="reg-checklist">
+                  {profileChecks.map((check, idx) => (
+                    <div key={idx} className={`reg-check-item-v2 ${check.valid ? "active" : ""}`}>
+                      <span className="check-mark">{check.valid ? "✓" : "○"}</span>
+                      <span className="check-text">{check.label}</span>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div className="register-benefit-card glass-panel">
-                <h3>Why this page feels different</h3>
-                <p>
-                  Login should be quick. Registration should feel guided. This version separates
-                  setup into clearer stages so new users are less likely to feel lost.
-                </p>
-                <ul className="register-benefit-list">
-                  <li>Grouped details instead of one long plain form</li>
-                  <li>Sidebar progress feedback while typing</li>
-                  <li>Distinct visual identity from the login page</li>
-                </ul>
+              <div className="info-block-v2 stats-bar-premium" style={{ marginTop: "1.5rem", padding: "1.5rem", background: "var(--glass)" }}>
+                <span className="info-icon">💡</span>
+                <p>Ensuring your details match your campus records will speed up the administrative approval process.</p>
               </div>
             </aside>
           </div>
-
-          {errorMessage && <p className="message error">{errorMessage}</p>}
-          {successMessage && <p className="message success">{successMessage}</p>}
         </section>
+
+        <div className="portal-footer-actions">
+          <button
+            type="button"
+            className="tiny-btn"
+            onClick={() => {
+              clearMessages();
+              setCurrentDashboard("portal");
+            }}
+          >
+            ← Back to Public Portal
+          </button>
+        </div>
+
+        {errorMessage && (
+          <div className="toast-message error">
+            <span>{errorMessage}</span>
+          </div>
+        )}
+        {successMessage && (
+          <div className="toast-message success">
+            <span>{successMessage}</span>
+          </div>
+        )}
       </div>
     </main>
   );
 }
+

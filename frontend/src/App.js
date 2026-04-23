@@ -6,8 +6,22 @@ import {
   portalActions,
   roomStatuses,
   roomTypes,
+  ticketCategories,
+  ticketPriorities,
+  ticketStatuses,
+  MAX_TICKET_IMAGE_SIZE_BYTES,
+  MAX_TICKET_IMAGE_REQUEST_BYTES,
+  ticketBuildingOptions,
 } from "./A_constants";
-import { formatLabel, getRoomQuickNote, withSeconds } from "./A_helpers";
+import { 
+  formatLabel, 
+  getRoomQuickNote, 
+  withSeconds,
+  formatFileSize,
+  getCurrentDateTimeValue,
+  getTicketStatusTone,
+  getTicketBuildingLabel
+} from "./A_helpers";
 import APortalView from "./A_PortalView";
 import ABookRoomView from "./B_BookRoomView";
 import ABlankView from "./A_BlankView";
@@ -15,7 +29,8 @@ import ALoginView from "./L_LoginView";
 import ARegisterView from "./A_RegisterView";
 import AMaintenanceView from "./M_MaintenanceView";
 import AAdminDashboardView from "./A_AdminDashboardView";
-import TTicketView from "./T_TicketView";
+import ATicketFormView from "./ATicketFormView";
+import ATicketHistoryView from "./ATicketHistoryView";
 import {
   addFloor,
   approveBooking,
@@ -33,76 +48,17 @@ import {
   fetchMyBookings,
   fetchRooms,
   fetchTickets,
+  loginUser,
   rejectBooking,
+  registerUser,
   updateTicket as updateTicketApi,
   updateBuilding as updateBuildingApi,
   updateFloor as updateFloorApi,
   updateRoom as updateRoomApi,
 } from "./api/campusApi";
 
-const ticketCategories = [
-  "EQUIPMENT",
-  "NETWORK",
-  "ELECTRICAL",
-  "PLUMBING",
-  "CLEANING",
-  "SECURITY",
-  "OTHER",
-];
-const ticketPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
-const ticketStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
-const MAX_TICKET_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
-const MAX_TICKET_IMAGE_REQUEST_BYTES = 50 * 1024 * 1024;
-const ticketBuildingOptions = [
-  { value: "1", label: "Main Building", floorCount: 9 },
-  { value: "2", label: "New Building", floorCount: 14 },
-];
-const AUTH_USERS_STORAGE_KEY = "smartCampusAuthUsers";
 const NOTIFICATION_STORAGE_KEY = "smartCampusSystemNotifications";
-const DEFAULT_AUTH_USERS = [
-  {
-    fullName: "Campus Super Admin",
-    email: "cadmin@gmail.com",
-    phoneNumber: "0710000001",
-    idNumber: "ADMIN001",
-    dateOfBirth: "1985-01-15",
-    affiliation: "Administrative Staff",
-    department: "Campus Administration",
-    password: "cadmin123",
-    role: "ADMIN",
-    userId: 1,
-  },
-  {
-    fullName: "Campus Admin",
-    email: "admin@gmail.com",
-    phoneNumber: "0710000002",
-    idNumber: "ADMIN002",
-    dateOfBirth: "1988-06-20",
-    affiliation: "Administrative Staff",
-    department: "Operations",
-    password: "admin123",
-    role: "ADMIN",
-    userId: 2,
-  },
-  {
-    fullName: "Maintenance Staff",
-    email: "maintance@gmail.com",
-    phoneNumber: "0710000003",
-    idNumber: "MAIN001",
-    dateOfBirth: "1990-03-10",
-    affiliation: "Maintenance Team",
-    department: "Facilities Maintenance",
-    password: "maint123",
-    role: "MAINTENANCE",
-    userId: 3,
-  },
-];
 
-function getCurrentDateTimeValue() {
-  const now = new Date();
-  const timezoneOffset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
-}
 
 function getEmptyTicketForm() {
   return {
@@ -207,7 +163,6 @@ function App() {
   });
   const [adminBookings, setAdminBookings] = useState([]);
   const [adminBookingsLoading, setAdminBookingsLoading] = useState(false);
-  const [authUsers, setAuthUsers] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState(() => getEmptyRegisterForm());
@@ -227,29 +182,6 @@ function App() {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
-
-  useEffect(() => {
-    const storedUsers = window.localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-    if (!storedUsers) {
-      setAuthUsers(DEFAULT_AUTH_USERS);
-      window.localStorage.setItem(
-        AUTH_USERS_STORAGE_KEY,
-        JSON.stringify(DEFAULT_AUTH_USERS)
-      );
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedUsers);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setAuthUsers(parsed);
-      } else {
-        setAuthUsers(DEFAULT_AUTH_USERS);
-      }
-    } catch (error) {
-      setAuthUsers(DEFAULT_AUTH_USERS);
-    }
   }, []);
 
   useEffect(() => {
@@ -309,6 +241,29 @@ function App() {
       ),
     [myTicketHistory]
   );
+  const selectedTicketImages = useMemo(() => Array.from(ticketForm.images || []), [ticketForm.images]);
+  const selectedTicketImageTotal = useMemo(
+    () => selectedTicketImages.reduce((sum, file) => sum + file.size, 0),
+    [selectedTicketImages]
+  );
+  const ticketLocationSummary = useMemo(() => {
+    if (!selectedTicketBuilding) {
+      return "Choose a building to continue";
+    }
+
+    if (!ticketForm.userId) {
+      return `${selectedTicketBuilding.label} selected`;
+    }
+
+    const roomLabel = ticketForm.assignedTechnicianId?.trim();
+    return `${selectedTicketBuilding.label}, Floor ${ticketForm.userId}${
+      roomLabel ? `, ${roomLabel}` : ""
+    }`;
+  }, [
+    selectedTicketBuilding,
+    ticketForm.assignedTechnicianId,
+    ticketForm.userId,
+  ]);
 
   const bookNotifications = useMemo(
     () => systemNotifications.filter((item) => item.target === "BOOK"),
@@ -363,7 +318,7 @@ function App() {
   );
 
   const selectedBuildingStats = useMemo(() => {
-    const roomCount = selectedBuildingRooms.length;      
+    const roomCount = selectedBuildingRooms.length;
     return {
       roomCount,
       activeCount: selectedBuildingRooms.filter((room) => room.status === "ACTIVE").length,
@@ -413,7 +368,7 @@ function App() {
     () => bookRoomSelectedBuilding?.floors || [],
     [bookRoomSelectedBuilding]
   );
-  
+
   const bookRoomSelectedFloor = useMemo(
     () => bookRoomFloors.find((floor) => String(floor.id) === String(bookRoomSelectedFloorId)),
     [bookRoomFloors, bookRoomSelectedFloorId]
@@ -554,7 +509,7 @@ function App() {
                       .map((item) => (item.id === editingFloorId ? savedFloor : item))
                       .sort((a, b) => a.floorNumber - b.floorNumber)
                   : [...building.floors, savedFloor].sort((a, b) => a.floorNumber - b.floorNumber),
-              }
+            }
             : building
         )
       );
@@ -831,15 +786,37 @@ function App() {
     }));
   }
 
+  function resolveUserRoleByEmail(email = "") {
+    const normalized = String(email).trim().toLowerCase();
+    const username = normalized.includes("@")
+      ? normalized.slice(0, normalized.indexOf("@"))
+      : normalized;
+
+    if (username.includes("maintance") || username.includes("maintenance")) {
+      return "MAINTENANCE";
+    }
+
+    if (username.includes("admin")) {
+      return "ADMIN";
+    }
+
+    return "USER";
+  }
+
   function routeUserByRole(user) {
-    if (user.role === "ADMIN") {
+    const effectiveRole =
+      user.role === "ADMIN" || user.role === "MAINTENANCE"
+        ? user.role
+        : resolveUserRoleByEmail(user.email);
+
+    if (effectiveRole === "ADMIN") {
       setCurrentDashboard("admin");
       setActiveSection("view-book-status");
       loadAdminBookings();
       return;
     }
 
-    if (user.role === "MAINTENANCE") {
+    if (effectiveRole === "MAINTENANCE") {
       setCurrentDashboard("maintenance");
       return;
     }
@@ -852,27 +829,30 @@ function App() {
     loadMyBookings();
   }
 
-  function handleLoginSubmit(event) {
+  async function handleLoginSubmit(event) {
     event.preventDefault();
     clearMessages();
 
     const email = loginForm.email.trim().toLowerCase();
     const password = loginForm.password;
-    const found = authUsers.find(
-      (user) => user.email.toLowerCase() === email && user.password === password
-    );
 
-    if (!found) {
-      setErrorMessage("Invalid email or password.");
+    if (!email || !password) {
+      setErrorMessage("Email and password are required.");
       return;
     }
 
-    setAuthUser(found);
-    setSuccessMessage(`Welcome ${found.fullName}.`);
-    routeUserByRole(found);
+    try {
+      const found = await loginUser({ email, password });
+      setAuthUser(found);
+      setSuccessMessage(`Welcome ${found.fullName}.`);
+      setLoginForm({ email: "", password: "" });
+      routeUserByRole(found);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   }
 
-  function handleRegisterSubmit(event) {
+  async function handleRegisterSubmit(event) {
     event.preventDefault();
     clearMessages();
 
@@ -887,6 +867,8 @@ function App() {
     const confirmPassword = registerForm.confirmPassword;
     const phonePattern = /^\d{10}$/;
     const idPattern = /^[A-Z0-9]{6,15}$/;
+    const sliitEmailPattern = /^[a-zA-Z0-9._%+-]+@my\.sliit\.lk$/;
+    const allowedAffiliations = ["Academic Staff", "Administrative Staff"];
     const parsedDob = new Date(dateOfBirth);
     const isDobValid =
       Boolean(dateOfBirth) &&
@@ -907,8 +889,13 @@ function App() {
       return;
     }
 
-    if (!email.includes("@") || !email.includes(".")) {
-      setErrorMessage("Enter a valid email address.");
+    if (!sliitEmailPattern.test(email)) {
+      setErrorMessage("Email must be in this format: username@my.sliit.lk");
+      return;
+    }
+
+    if (!allowedAffiliations.includes(affiliation)) {
+      setErrorMessage("Affiliation must be Academic Staff or Administrative Staff.");
       return;
     }
 
@@ -942,49 +929,25 @@ function App() {
       return;
     }
 
-    const exists = authUsers.some((user) => user.email.toLowerCase() === email);
-    if (exists) {
-      setErrorMessage("Email already registered. Please login.");
-      return;
+    try {
+      await registerUser({
+        fullName,
+        email,
+        phoneNumber,
+        idNumber,
+        dateOfBirth,
+        affiliation,
+        department,
+        password,
+      });
+
+      setRegisterForm(getEmptyRegisterForm());
+      setLoginForm({ email, password: "" });
+      setSuccessMessage("Registration successful. Please login.");
+      setCurrentDashboard("login");
+    } catch (error) {
+      setErrorMessage(error.message);
     }
-
-    const phoneExists = authUsers.some(
-      (user) => (user.phoneNumber || "").trim() === phoneNumber
-    );
-    if (phoneExists) {
-      setErrorMessage("Phone number already registered. Please use another one.");
-      return;
-    }
-
-    const idExists = authUsers.some(
-      (user) => (user.idNumber || "").trim().toUpperCase() === idNumber
-    );
-    if (idExists) {
-      setErrorMessage("ID number already registered. Please use another one.");
-      return;
-    }
-
-    const nextUser = {
-      fullName,
-      email,
-      phoneNumber,
-      idNumber,
-      dateOfBirth,
-      affiliation,
-      department,
-      password,
-      role: email === "maintance@gmail.com" ? "MAINTENANCE" : "USER",
-      userId: authUsers.length + 1,
-    };
-
-    const nextUsers = [...authUsers, nextUser];
-    setAuthUsers(nextUsers);
-    window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(nextUsers));
-
-    setRegisterForm(getEmptyRegisterForm());
-    setLoginForm({ email, password: "" });
-    setSuccessMessage("Registration successful. Please login.");
-    setCurrentDashboard("login");
   }
 
   function handleLogout() {
@@ -1461,6 +1424,9 @@ function App() {
         portalActions={portalActions}
         handlePortalAction={handlePortalAction}
         successMessage={successMessage}
+        buildingsCount={buildings.length}
+        roomsCount={rooms.length}
+        ticketsCount={tickets.length}
       />
     );
   }
@@ -1558,416 +1524,43 @@ function App() {
 
   if (currentDashboard === "ticket-history") {
     return (
-      <TTicketView
-        currentDashboard={currentDashboard}
-        clearMessages={clearMessages}
-        setCurrentDashboard={setCurrentDashboard}
+      <ATicketHistoryView
         myTicketHistory={myTicketHistory}
         myTicketStatusCount={myTicketStatusCount}
-        errorMessage={errorMessage}
-        successMessage={successMessage}
+        getTicketStatusTone={getTicketStatusTone}
+        getTicketBuildingLabel={getTicketBuildingLabel}
         handleStartTicketEdit={handleStartTicketEdit}
         handleDeleteTicket={handleDeleteTicket}
-        getTicketStatusTone={getTicketStatusTone}
-        formatLabel={formatLabel}
-        getTicketBuildingLabel={getTicketBuildingLabel}
-        selectedTicketBuilding={selectedTicketBuilding}
-        ticketFloorOptions={ticketFloorOptions}
-        ticketForm={ticketForm}
-        setTicketForm={setTicketForm}
-        editingTicketId={editingTicketId}
-        latestSubmittedTicket={latestSubmittedTicket}
-        handleCreateTicket={handleCreateTicket}
-        handleCancelTicketEdit={handleCancelTicketEdit}
-        handleDownloadTicketPdf={handleDownloadTicketPdf}
+        setCurrentDashboard={setCurrentDashboard}
+        clearMessages={clearMessages}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
       />
-    );
-    return (
-      <main className="dashboard-shell">
-        <div className="abstract-bg" />
-        <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
-            <div className="hero-head-row">
-              <span className="hero-tag">Smart Campus Access</span>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("ticket");
-                }}
-              >
-                Back To Ticket Page
-              </button>
-            </div>
-            <h1>My Ticket History</h1>
-            <p>View, update, or delete your ticket history from this page.</p>
-          </header>
-
-          <section className="metrics-row">
-            <article className="metric-card">
-              <span>My Tickets</span>
-              <strong>{myTicketHistory.length}</strong>
-            </article>
-            <article className="metric-card">
-              <span>Open</span>
-              <strong>{myTicketStatusCount.OPEN || 0}</strong>
-            </article>
-            <article className="metric-card">
-              <span>In Progress</span>
-              <strong>{myTicketStatusCount.IN_PROGRESS || 0}</strong>
-            </article>
-          </section>
-
-          {errorMessage && <p className="message error">{errorMessage}</p>}
-          {successMessage && <p className="message success">{successMessage}</p>}
-
-          <section className="workspace">
-            <article className="glass-panel ticket-history-panel">
-              <div className="panel-header-actions">
-                <h2>My Ticket History</h2>
-                <small className="field-hint">
-                  Tickets created from this browser can be updated or deleted here.
-                </small>
-              </div>
-
-              {myTicketHistory.length === 0 ? (
-                <p className="empty">No personal ticket history found yet.</p>
-              ) : (
-                <div className="ticket-list">
-                  {myTicketHistory.map((ticket) => (
-                    <article key={`history-${ticket.id}`} className="ticket-card">
-                      <div className="ticket-card-head">
-                        <h3>{ticket.title}</h3>
-                        <span className={`ticket-pill ${getTicketStatusTone(ticket.status)}`}>
-                          {formatLabel(ticket.status)}
-                        </span>
-                      </div>
-                      <p>{ticket.description}</p>
-                      <div className="ticket-meta">
-                        <span>{formatLabel(ticket.category)}</span>
-                        <span>{formatLabel(ticket.priority)} Priority</span>
-                        <span>{getTicketBuildingLabel(ticket.resourceId)}</span>
-                        <span>Floor {ticket.userId}</span>
-                        <span>
-                          Hall/Lab{" "}
-                          {ticket.assignedTechnicianId
-                            ? ticket.assignedTechnicianId
-                            : "Not Provided"}
-                        </span>
-                        <span>{ticket.createdDate.replace("T", " ")}</span>
-                      </div>
-                      <div className="ticket-card-actions">
-                        <button
-                          type="button"
-                          className="tiny-btn"
-                          onClick={() => handleStartTicketEdit(ticket)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="tiny-btn danger"
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </article>
-          </section>
-        </div>
-      </main>
     );
   }
 
   if (currentDashboard === "ticket") {
     return (
-      <TTicketView
-        currentDashboard={currentDashboard}
-        clearMessages={clearMessages}
+      <ATicketFormView
+        editingTicketId={editingTicketId}
+        ticketForm={ticketForm}
+        setTicketForm={setTicketForm}
+        handleCreateTicket={handleCreateTicket}
+        handleCancelTicketEdit={handleCancelTicketEdit}
+        ticketLocationSummary={ticketLocationSummary}
+        selectedTicketBuilding={selectedTicketBuilding}
+        ticketFloorOptions={ticketFloorOptions}
+        selectedTicketImages={selectedTicketImages}
+        selectedTicketImageTotal={selectedTicketImageTotal}
         setCurrentDashboard={setCurrentDashboard}
+        clearMessages={clearMessages}
         myTicketHistory={myTicketHistory}
         myTicketStatusCount={myTicketStatusCount}
         errorMessage={errorMessage}
         successMessage={successMessage}
-        handleStartTicketEdit={handleStartTicketEdit}
-        handleDeleteTicket={handleDeleteTicket}
-        getTicketStatusTone={getTicketStatusTone}
-        formatLabel={formatLabel}
-        getTicketBuildingLabel={getTicketBuildingLabel}
-        selectedTicketBuilding={selectedTicketBuilding}
-        ticketFloorOptions={ticketFloorOptions}
-        ticketForm={ticketForm}
-        setTicketForm={setTicketForm}
-        editingTicketId={editingTicketId}
         latestSubmittedTicket={latestSubmittedTicket}
-        handleCreateTicket={handleCreateTicket}
-        handleCancelTicketEdit={handleCancelTicketEdit}
         handleDownloadTicketPdf={handleDownloadTicketPdf}
       />
-    );
-    return (
-      <main className="dashboard-shell">
-        <div className="abstract-bg" />
-        <div className="dashboard-wrap">
-          <header className="hero-banner portal-hero">
-            <div className="hero-head-row">
-              <span className="hero-tag">Smart Campus Access</span>
-              <button
-                type="button"
-                className="tiny-btn hero-back"
-                onClick={() => {
-                  clearMessages();
-                  setCurrentDashboard("portal");
-                }}
-              >
-                Back To Portal
-              </button>
-            </div>
-            <h1>Ticket Page</h1>
-            <p>
-              Submit a campus support ticket with issue details, priority, related
-              resource, technician assignment, and image references.
-            </p>
-          </header>
-
-          <section className="metrics-row">
-            <article className="metric-card">
-              <span>My Tickets</span>
-              <strong>{myTicketHistory.length}</strong>
-            </article>
-            <article className="metric-card">
-              <span>Open</span>
-              <strong>{myTicketStatusCount.OPEN || 0}</strong>
-            </article>
-            <article className="metric-card">
-              <span>In Progress</span>
-              <strong>{myTicketStatusCount.IN_PROGRESS || 0}</strong>
-            </article>
-          </section>
-
-          {errorMessage && <p className="message error">{errorMessage}</p>}
-          {successMessage && <p className="message success">{successMessage}</p>}
-
-          <section className="workspace">
-            <div className="workspace-grid two-up">
-              <form className="glass-panel" onSubmit={handleCreateTicket}>
-                <div className="panel-header-actions">
-                  <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
-                  <button
-                    type="button"
-                    className="tiny-btn"
-                    onClick={() => {
-                      clearMessages();
-                      setCurrentDashboard("ticket-history");
-                    }}
-                  >
-                    My Ticket History
-                  </button>
-                </div>
-                <div className="ticket-field-grid">
-                  <label>
-                    Title
-                    <input
-                      required
-                      value={ticketForm.title}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          title: event.target.value,
-                        }))
-                      }
-                      placeholder="Projector not working"
-                    />
-                  </label>
-                  <label>
-                    Category
-                    <select
-                      value={ticketForm.category}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          category: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {formatLabel(category)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Priority
-                    <select
-                      value={ticketForm.priority}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          priority: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketPriorities.map((priority) => (
-                        <option key={priority} value={priority}>
-                          {formatLabel(priority)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Status
-                    <select
-                      value={ticketForm.status}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          status: event.target.value,
-                        }))
-                      }
-                    >
-                      {ticketStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {formatLabel(status)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Building
-                    <select
-                      required
-                      value={ticketForm.resourceId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          resourceId: event.target.value,
-                          userId: "",
-                        }))
-                      }
-                    >
-                      <option value="">Select Building</option>
-                      {ticketBuildingOptions.map((building) => (
-                        <option key={building.value} value={building.value}>
-                          {building.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Floor Number
-                    <select
-                      required
-                      disabled={!selectedTicketBuilding}
-                      value={ticketForm.userId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          userId: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        {selectedTicketBuilding ? "Select Floor" : "Select Building First"}
-                      </option>
-                      {ticketFloorOptions.map((floorNumber) => (
-                        <option key={floorNumber} value={floorNumber}>
-                          Floor {floorNumber}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Lecturer Hall or Lab Number
-                    <input
-                      type="text"
-                      value={ticketForm.assignedTechnicianId}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          assignedTechnicianId: event.target.value,
-                        }))
-                      }
-                      placeholder="LH-101 or Lab 2"
-                    />
-                    <small className="field-hint">
-                      Enter the hall or lab number manually.
-                    </small>
-                  </label>
-                  <label>
-                    Created Date
-                    <input
-                      required
-                      type="datetime-local"
-                      value={ticketForm.createdDate}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          createdDate: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="description-field">
-                    Description
-                    <textarea
-                      required
-                      rows="4"
-                      value={ticketForm.description}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                      placeholder="Explain the issue clearly so support staff can reproduce it."
-                    />
-                  </label>
-                  <label className="description-field">
-                    Ticket Images
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      disabled={Boolean(editingTicketId)}
-                      onChange={(event) =>
-                        setTicketForm((current) => ({
-                          ...current,
-                          images: event.target.files || [],
-                        }))
-                      }
-                    />
-                    <small className="field-hint">
-                      {editingTicketId
-                        ? "Existing images stay attached while editing. Add new images by creating a new ticket."
-                        : "Upload one or more image files directly from your device. Limit: 25MB per file, 50MB total."}
-                    </small>
-                  </label>
-                </div>
-                <div className="ticket-form-actions">
-                  <button type="submit">
-                    {editingTicketId ? "Update Ticket" : "Submit Ticket"}
-                  </button>
-                  {editingTicketId && (
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={handleCancelTicketEdit}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </section>
-        </div>
-      </main>
     );
   }
 
@@ -2137,9 +1730,8 @@ function App() {
             <button
               key={action.id}
               type="button"
-              className={`action-button ${action.accent} ${
-                activeSection === action.id ? "active" : ""
-              }`}
+              className={`action-button ${action.accent} ${activeSection === action.id ? "active" : ""
+                }`}
               onClick={() => setActiveSection(action.id)}
             >
               <span>{action.title}</span>
@@ -2459,11 +2051,10 @@ function App() {
                       {buildings.map((building) => (
                         <li
                           key={building.id}
-                          className={`map-card ${
-                            String(selectedBuildingId) === String(building.id)
+                          className={`map-card ${String(selectedBuildingId) === String(building.id)
                               ? "selected"
                               : ""
-                          }`}
+                            }`}
                           onClick={() => setSelectedBuildingId(building.id)}
                         >
                           <div className="map-card-head">
