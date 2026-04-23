@@ -47,53 +47,16 @@ import {
   fetchMyBookings,
   fetchRooms,
   fetchTickets,
+  loginUser,
   rejectBooking,
+  registerUser,
   updateTicket as updateTicketApi,
   updateBuilding as updateBuildingApi,
   updateFloor as updateFloorApi,
   updateRoom as updateRoomApi,
 } from "./api/campusApi";
 
-const AUTH_USERS_STORAGE_KEY = "smartCampusAuthUsers";
 const NOTIFICATION_STORAGE_KEY = "smartCampusSystemNotifications";
-const DEFAULT_AUTH_USERS = [
-  {
-    fullName: "Campus Super Admin",
-    email: "cadmin@gmail.com",
-    phoneNumber: "0710000001",
-    idNumber: "ADMIN001",
-    dateOfBirth: "1985-01-15",
-    affiliation: "Administrative Staff",
-    department: "Campus Administration",
-    password: "cadmin123",
-    role: "ADMIN",
-    userId: 1,
-  },
-  {
-    fullName: "Campus Admin",
-    email: "admin@gmail.com",
-    phoneNumber: "0710000002",
-    idNumber: "ADMIN002",
-    dateOfBirth: "1988-06-20",
-    affiliation: "Administrative Staff",
-    department: "Operations",
-    password: "admin123",
-    role: "ADMIN",
-    userId: 2,
-  },
-  {
-    fullName: "Maintenance Staff",
-    email: "maintance@gmail.com",
-    phoneNumber: "0710000003",
-    idNumber: "MAIN001",
-    dateOfBirth: "1990-03-10",
-    affiliation: "Maintenance Team",
-    department: "Facilities Maintenance",
-    password: "maint123",
-    role: "MAINTENANCE",
-    userId: 3,
-  },
-];
 
 
 function getEmptyTicketForm() {
@@ -199,7 +162,6 @@ function App() {
   });
   const [adminBookings, setAdminBookings] = useState([]);
   const [adminBookingsLoading, setAdminBookingsLoading] = useState(false);
-  const [authUsers, setAuthUsers] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState(() => getEmptyRegisterForm());
@@ -219,29 +181,6 @@ function App() {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
-
-  useEffect(() => {
-    const storedUsers = window.localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-    if (!storedUsers) {
-      setAuthUsers(DEFAULT_AUTH_USERS);
-      window.localStorage.setItem(
-        AUTH_USERS_STORAGE_KEY,
-        JSON.stringify(DEFAULT_AUTH_USERS)
-      );
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedUsers);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setAuthUsers(parsed);
-      } else {
-        setAuthUsers(DEFAULT_AUTH_USERS);
-      }
-    } catch (error) {
-      setAuthUsers(DEFAULT_AUTH_USERS);
-    }
   }, []);
 
   useEffect(() => {
@@ -846,15 +785,37 @@ function App() {
     }));
   }
 
+  function resolveUserRoleByEmail(email = "") {
+    const normalized = String(email).trim().toLowerCase();
+    const username = normalized.includes("@")
+      ? normalized.slice(0, normalized.indexOf("@"))
+      : normalized;
+
+    if (username.includes("maintance") || username.includes("maintenance")) {
+      return "MAINTENANCE";
+    }
+
+    if (username.includes("admin")) {
+      return "ADMIN";
+    }
+
+    return "USER";
+  }
+
   function routeUserByRole(user) {
-    if (user.role === "ADMIN") {
+    const effectiveRole =
+      user.role === "ADMIN" || user.role === "MAINTENANCE"
+        ? user.role
+        : resolveUserRoleByEmail(user.email);
+
+    if (effectiveRole === "ADMIN") {
       setCurrentDashboard("admin");
       setActiveSection("view-book-status");
       loadAdminBookings();
       return;
     }
 
-    if (user.role === "MAINTENANCE") {
+    if (effectiveRole === "MAINTENANCE") {
       setCurrentDashboard("maintenance");
       return;
     }
@@ -867,27 +828,30 @@ function App() {
     loadMyBookings();
   }
 
-  function handleLoginSubmit(event) {
+  async function handleLoginSubmit(event) {
     event.preventDefault();
     clearMessages();
 
     const email = loginForm.email.trim().toLowerCase();
     const password = loginForm.password;
-    const found = authUsers.find(
-      (user) => user.email.toLowerCase() === email && user.password === password
-    );
 
-    if (!found) {
-      setErrorMessage("Invalid email or password.");
+    if (!email || !password) {
+      setErrorMessage("Email and password are required.");
       return;
     }
 
-    setAuthUser(found);
-    setSuccessMessage(`Welcome ${found.fullName}.`);
-    routeUserByRole(found);
+    try {
+      const found = await loginUser({ email, password });
+      setAuthUser(found);
+      setSuccessMessage(`Welcome ${found.fullName}.`);
+      setLoginForm({ email: "", password: "" });
+      routeUserByRole(found);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   }
 
-  function handleRegisterSubmit(event) {
+  async function handleRegisterSubmit(event) {
     event.preventDefault();
     clearMessages();
 
@@ -902,6 +866,8 @@ function App() {
     const confirmPassword = registerForm.confirmPassword;
     const phonePattern = /^\d{10}$/;
     const idPattern = /^[A-Z0-9]{6,15}$/;
+    const sliitEmailPattern = /^[a-zA-Z0-9._%+-]+@my\.sliit\.lk$/;
+    const allowedAffiliations = ["Academic Staff", "Administrative Staff"];
     const parsedDob = new Date(dateOfBirth);
     const isDobValid =
       Boolean(dateOfBirth) &&
@@ -922,8 +888,13 @@ function App() {
       return;
     }
 
-    if (!email.includes("@") || !email.includes(".")) {
-      setErrorMessage("Enter a valid email address.");
+    if (!sliitEmailPattern.test(email)) {
+      setErrorMessage("Email must be in this format: username@my.sliit.lk");
+      return;
+    }
+
+    if (!allowedAffiliations.includes(affiliation)) {
+      setErrorMessage("Affiliation must be Academic Staff or Administrative Staff.");
       return;
     }
 
@@ -957,49 +928,25 @@ function App() {
       return;
     }
 
-    const exists = authUsers.some((user) => user.email.toLowerCase() === email);
-    if (exists) {
-      setErrorMessage("Email already registered. Please login.");
-      return;
+    try {
+      await registerUser({
+        fullName,
+        email,
+        phoneNumber,
+        idNumber,
+        dateOfBirth,
+        affiliation,
+        department,
+        password,
+      });
+
+      setRegisterForm(getEmptyRegisterForm());
+      setLoginForm({ email, password: "" });
+      setSuccessMessage("Registration successful. Please login.");
+      setCurrentDashboard("login");
+    } catch (error) {
+      setErrorMessage(error.message);
     }
-
-    const phoneExists = authUsers.some(
-      (user) => (user.phoneNumber || "").trim() === phoneNumber
-    );
-    if (phoneExists) {
-      setErrorMessage("Phone number already registered. Please use another one.");
-      return;
-    }
-
-    const idExists = authUsers.some(
-      (user) => (user.idNumber || "").trim().toUpperCase() === idNumber
-    );
-    if (idExists) {
-      setErrorMessage("ID number already registered. Please use another one.");
-      return;
-    }
-
-    const nextUser = {
-      fullName,
-      email,
-      phoneNumber,
-      idNumber,
-      dateOfBirth,
-      affiliation,
-      department,
-      password,
-      role: email === "maintance@gmail.com" ? "MAINTENANCE" : "USER",
-      userId: authUsers.length + 1,
-    };
-
-    const nextUsers = [...authUsers, nextUser];
-    setAuthUsers(nextUsers);
-    window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(nextUsers));
-
-    setRegisterForm(getEmptyRegisterForm());
-    setLoginForm({ email, password: "" });
-    setSuccessMessage("Registration successful. Please login.");
-    setCurrentDashboard("login");
   }
 
   function handleLogout() {

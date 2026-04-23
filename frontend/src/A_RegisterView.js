@@ -1,11 +1,8 @@
 import { useState } from "react";
 
 const affiliationOptions = [
-  "Student",
   "Academic Staff",
   "Administrative Staff",
-  "Maintenance Team",
-  "Visitor",
 ];
 
 const registerHighlights = [
@@ -133,6 +130,9 @@ export default function ARegisterView({
                           }
                           placeholder="john@campus.com"
                         />
+                        <small className="auth-field-note">
+                          Use your SLIIT email in this format: username@my.sliit.lk
+                        </small>
                       </div>
                     </div>
                   </div>
