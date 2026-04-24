@@ -44,7 +44,7 @@ export default function ALoginView({
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap portal-container">
-        <header className="hero-banner portal-hero-v2 auth-hero">
+        <header className="hero-banner admin-hero-v3">
           <div className="hero-content">
             <span className="hero-tag">✦ Staff & Admin Portal</span>
             <h1>Welcome Back</h1>
@@ -53,135 +53,119 @@ export default function ALoginView({
               track requests, and oversee facility operations.
             </p>
           </div>
-          <div className="hero-visual">
-            <div className="pulsing-orb" style={{ background: "radial-gradient(circle, var(--sky) 0%, transparent 70%)" }} />
-          </div>
         </header>
 
-        <section className="portal-action-section">
-          <div className="auth-split-layout">
-            <div className="auth-info-pane">
-              <div className="section-header">
-                <h2>Why sign in?</h2>
-                <p>Unlock professional management tools</p>
+        <section className="auth-layout-v3">
+          <div className="auth-info-v3">
+            <div className="section-header">
+              <span className="panel-kicker">Professional Access</span>
+              <h2>Why sign in?</h2>
+              <p>Unlock localized management tools for your faculty</p>
+            </div>
+            
+            <div className="auth-feature-v3">
+              <div className="icon">🚀</div>
+              <div>
+                <strong>Faster Reservations</strong>
+                <p>Book rooms without the clutter. Save favorites and auto-fill details.</p>
               </div>
-              <div className="auth-feature-list">
-                {loginHighlights.map((item, index) => (
-                  <div key={index} className="auth-feature-item" style={{ "--delay": `${index * 0.1}s` }}>
-                    <div className="feature-dot" />
-                    <div className="feature-text">
-                      <strong>{item.title}</strong>
-                      <p>{item.description}</p>
-                    </div>
+            </div>
+
+            <div className="auth-feature-v3">
+              <div className="icon">📊</div>
+              <div>
+                <strong>Clear Status Tracking</strong>
+                <p>Monitor approvals and maintenance progress in real-time.</p>
+              </div>
+            </div>
+
+            <div className="stat-card-v3" style={{ background: 'var(--glass)', marginTop: 'auto' }}>
+              <span>Developer Note</span>
+              <strong>Demo Access Accounts</strong>
+              <div className="demo-badge-grid" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {demoUsers.map((user) => (
+                  <div key={user.email} className="demo-badge" style={{ padding: '0.75rem', background: 'white', borderRadius: '12px', border: '1px solid var(--line)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--ink-soft)', display: 'block' }}>{user.role}</span>
+                    <strong style={{ fontSize: '0.8rem', display: 'block' }}>{user.email}</strong>
+                    <code style={{ fontSize: '0.75rem', color: 'var(--teal)' }}>{user.password}</code>
                   </div>
                 ))}
               </div>
-              
-              <div className="auth-demo-section stats-bar-premium" style={{ padding: "1.5rem", marginTop: "2rem", flexDirection: "column", alignItems: "flex-start" }}>
-                <span className="stat-label" style={{ marginBottom: "1rem" }}>Quick Access Demo</span>
-                <div className="demo-badge-grid">
-                  {demoUsers.map((user) => (
-                    <div key={user.email} className="demo-badge">
-                      <span>{user.role}</span>
-                      <strong>{user.email}</strong>
-                      <small>{user.password}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            </div>
+          </div>
+
+          <div className="auth-card-v3 animate-fade-in">
+            <div className="form-header" style={{ marginBottom: '2rem' }}>
+              <h3>Secure Login</h3>
+              <p>Enter your credentials to continue</p>
             </div>
 
-            <div className="auth-form-pane">
-              <form className="portal-card-premium login-form-card" onSubmit={handleLoginSubmit} style={{ animationDelay: "0.2s", display: "block", cursor: "default" }}>
-                <div className="form-header">
-                  <h3>Secure Login</h3>
-                  <p>Enter your credentials below</p>
-                </div>
+            <form className="modern-form-wrap" onSubmit={handleLoginSubmit}>
+              <label className="modern-label">
+                Campus Email
+                <input
+                  required
+                  type="email"
+                  className="modern-input"
+                  value={loginForm.email}
+                  onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="e.g. admin@my.sliit.lk"
+                />
+              </label>
 
-                <div className="input-group">
-                  <label className="portal-label">Email Address</label>
+              <label className="modern-label">
+                Password
+                <div className="password-wrapper" style={{ position: 'relative' }}>
                   <input
                     required
-                    type="email"
-                    className="portal-input"
-                    value={loginForm.email}
-                    onChange={(event) =>
-                      setLoginForm((current) => ({
-                        ...current,
-                        email: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. user@my.sliit.lk"
+                    type={showPassword ? "text" : "password"}
+                    className="modern-input"
+                    value={loginForm.password}
+                    onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+                    placeholder="••••••••"
                   />
-                  <small className="auth-field-note">
-                    Only `@my.sliit.lk` accounts can access the system.
-                  </small>
-                </div>
-
-                <div className="input-group">
-                  <label className="portal-label">Password</label>
-                  <div className="password-wrapper">
-                    <input
-                      required
-                      type={showPassword ? "text" : "password"}
-                      className="portal-input"
-                      value={loginForm.password}
-                      onChange={(event) =>
-                        setLoginForm((current) => ({
-                          ...current,
-                          password: event.target.value,
-                        }))
-                      }
-                      placeholder="••••••••"
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword((current) => !current)}
-                    >
-                      {showPassword ? "🙈" : "👁️"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-footer-actions">
-                  <button type="submit" className="primary-btn portal-btn">
-                    Sign In
-                  </button>
                   <button
                     type="button"
-                    className="secondary-btn portal-btn"
-                    onClick={handleGoogleLogin}
+                    style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--teal)', fontWeight: '600', cursor: 'pointer' }}
+                    onClick={() => setShowPassword((current) => !current)}
                   >
-                    Continue With Google
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn portal-btn-link"
-                    onClick={() => {
-                      clearMessages();
-                      setCurrentDashboard("register");
-                    }}
-                  >
-                    Don&apos;t have an account? <strong>Register</strong>
+                    {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-              </form>
-            </div>
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <input type="checkbox" style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                  Remember me
+                </label>
+                <button type="button" style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer' }}>
+                  Forgot Password?
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                <button type="submit" className="tiny-btn" style={{ width: '100%', padding: '1rem', background: 'var(--ink)', color: 'white' }}>
+                  Sign In to Dashboard
+                </button>
+                <button
+                  type="button"
+                  className="tiny-btn"
+                  style={{ width: '100%', padding: '1rem', background: 'white', border: '1px solid var(--line)' }}
+                  onClick={() => {
+                    clearMessages();
+                    setCurrentDashboard("register");
+                  }}
+                >
+                  Create New Account
+                </button>
+              </div>
+            </form>
           </div>
         </section>
 
-
-        {errorMessage && (
-          <div className="toast-message error">
-            <span>{errorMessage}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="toast-message success">
-            <span>{successMessage}</span>
-          </div>
-        )}
+        {errorMessage && <div className="toast-message error animate-fade-in"><span>{errorMessage}</span></div>}
+        {successMessage && <div className="toast-message success animate-fade-in"><span>{successMessage}</span></div>}
       </div>
     </main>
   );
