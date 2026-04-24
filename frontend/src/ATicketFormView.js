@@ -29,69 +29,72 @@ export default function ATicketFormView({
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
-      <div className="dashboard-wrap">
-        <header className="hero-banner portal-hero ticket-hero">
-          <div className="hero-head-row">
-            <span className="hero-tag">✦ Smart Campus Support</span>
-            <div className="hero-actions">
+      <div className="dashboard-wrap portal-container">
+        <div className="portal-top-bar">
+          <div className="user-profile-badge">
+            <div className="user-avatar">S</div>
+            <div className="user-text">
+              <span className="user-name">Support User</span>
+              <span className="user-role">Campus Member</span>
+            </div>
+          </div>
+          <div className="hero-actions">
               <button
                 type="button"
-                className="secondary-btn compact-btn hero-history-btn"
+                className="tiny-btn"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("ticket-history");
                 }}
               >
-                📋 My Ticket History
+                📋 My Tickets
               </button>
               <button
                 type="button"
-                className="secondary-btn compact-btn hero-back"
+                className="tiny-btn"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("portal");
                 }}
               >
-                ← Back To Portal
+                ← Portal
               </button>
-              <button
-                type="button"
-                className="secondary-btn compact-btn logout-btn"
-                onClick={handleLogout}
-              >
-                Logout
+              <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
+                🚪 Logout
               </button>
-            </div>
           </div>
-          <div className="hero-content-center">
-            <h1>Support Ticket Desk</h1>
+        </div>
+
+        <header className="hero-banner admin-hero-v3">
+          <div className="hero-content">
+            <span className="hero-tag">✦ Smart Campus Support</span>
+            <h1>Support Desk</h1>
             <p>
-              Report maintenance or technical issues with pinpoint accuracy. Our support team will review and resolve them promptly.
+              Report technical or facility issues with ease. Our maintenance team is ready to assist you.
             </p>
           </div>
         </header>
 
-        <section className="metrics-row">
-          <article className="metric-card premium">
-            <div className="metric-icon">📑</div>
-            <div>
-              <span>My Total Tickets</span>
-              <strong>{myTicketHistory.length}</strong>
-            </div>
+        <section className="stats-v3">
+          <article className="stat-card-v3">
+            <span>📑 History</span>
+            <strong>{myTicketHistory.length} Total</strong>
+            <small>Requests submitted</small>
           </article>
-          <article className="metric-card premium open">
-            <div className="metric-icon">⏺</div>
-            <div>
-              <span>Open Requests</span>
-              <strong>{myTicketStatusCount.OPEN || 0}</strong>
-            </div>
+          <article className="stat-card-v3">
+            <span>⏺ Open</span>
+            <strong>{myTicketStatusCount.OPEN || 0} Pending</strong>
+            <small>Awaiting review</small>
           </article>
-          <article className="metric-card premium progress">
-            <div className="metric-icon">🔄</div>
-            <div>
-              <span>In Progress</span>
-              <strong>{myTicketStatusCount.IN_PROGRESS || 0}</strong>
-            </div>
+          <article className="stat-card-v3">
+            <span>🔄 Active</span>
+            <strong>{myTicketStatusCount.IN_PROGRESS || 0} Work</strong>
+            <small>Being resolved now</small>
+          </article>
+          <article className="stat-card-v3">
+            <span>✅ Done</span>
+            <strong>{(myTicketStatusCount.RESOLVED || 0) + (myTicketStatusCount.CLOSED || 0)}</strong>
+            <small>Resolved issues</small>
           </article>
         </section>
 
