@@ -22,172 +22,125 @@ export default function ARegisterView({
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap portal-container">
-        <header className="hero-banner portal-hero-v2 register-hero-v2">
+        <header className="hero-banner admin-hero-v3">
           <div className="hero-content">
             <span className="hero-tag">✦ Create Account</span>
-            <h1>Register Your Campus Access</h1>
+            <h1>Campus Registration</h1>
             <p>
-              Create a standard user account with your SLIIT email, then sign in to
-              access room booking and ticket submission.
+              Join the Smart Campus network to access advanced facility booking and support tools.
             </p>
-          </div>
-          <div className="hero-visual">
-            <div
-              className="pulsing-orb"
-              style={{ background: "radial-gradient(circle, var(--leaf) 0%, transparent 70%)" }}
-            />
           </div>
         </header>
 
-        <section className="portal-action-section">
-          <div className="auth-split-layout registration-layout">
-            <div className="auth-form-pane">
-              <form
-                className="portal-card-premium login-form-card"
-                onSubmit={handleRegisterSubmit}
-                style={{ animationDelay: "0.1s", display: "block", cursor: "default" }}
-              >
-                <div className="form-header">
-                  <h3>New User Registration</h3>
-                  <p>Email and password are enough to get started</p>
-                </div>
-
-                <div className="input-group">
-                  <label className="portal-label">Full Name (Optional)</label>
-                  <input
-                    className="portal-input"
-                    value={registerForm.fullName}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({
-                        ...current,
-                        fullName: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Nethmi Perera"
-                  />
-                </div>
-
-                <div className="input-group">
-                  <label className="portal-label">Campus Email</label>
-                  <input
-                    required
-                    type="email"
-                    className="portal-input"
-                    value={registerForm.email}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({
-                        ...current,
-                        email: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. user@my.sliit.lk"
-                  />
-                </div>
-
-                <div className="input-group">
-                  <label className="portal-label">Password</label>
-                  <div className="password-wrapper">
-                    <input
-                      required
-                      type={showPassword ? "text" : "password"}
-                      className="portal-input"
-                      value={registerForm.password}
-                      onChange={(event) =>
-                        setRegisterForm((current) => ({
-                          ...current,
-                          password: event.target.value,
-                        }))
-                      }
-                      placeholder="At least 6 characters"
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword((current) => !current)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="input-group">
-                  <label className="portal-label">Confirm Password</label>
-                  <div className="password-wrapper">
-                    <input
-                      required
-                      type={showConfirmPassword ? "text" : "password"}
-                      className="portal-input"
-                      value={registerForm.confirmPassword}
-                      onChange={(event) =>
-                        setRegisterForm((current) => ({
-                          ...current,
-                          confirmPassword: event.target.value,
-                        }))
-                      }
-                      placeholder="Repeat your password"
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowConfirmPassword((current) => !current)}
-                    >
-                      {showConfirmPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-footer-actions">
-                  <button type="submit" className="primary-btn portal-btn">
-                    Create Account
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn portal-btn-link"
-                    onClick={() => {
-                      clearMessages();
-                      setCurrentDashboard("login");
-                    }}
-                  >
-                    Already have an account? <strong>Login</strong>
-                  </button>
-                </div>
-              </form>
+        <section className="auth-layout-v3">
+          <div className="auth-info-v3">
+            <div className="section-header">
+              <span className="panel-kicker">New Member</span>
+              <h2>Registration Guidelines</h2>
+              <p>Follow these steps to set up your access</p>
+            </div>
+            
+            <div className="auth-feature-v3">
+              <div className="icon">📧</div>
+              <div>
+                <strong>Campus Email Required</strong>
+                <p>You must use a valid @my.sliit.lk email address to register.</p>
+              </div>
             </div>
 
-            <aside className="auth-info-pane registration-side">
-              <div
-                className="stats-bar-premium register-status-card"
-                style={{ flexDirection: "column", padding: "1.5rem" }}
-              >
-                <span className="stat-label" style={{ marginBottom: "1rem" }}>
-                  Registration Rules
-                </span>
-                <div className="auth-feature-list">
-                  {checklist.map((item) => (
-                    <div key={item} className="auth-feature-item">
-                      <div className="feature-dot" />
-                      <div className="feature-text">
-                        <strong>{item}</strong>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div className="auth-feature-v3">
+              <div className="icon">🛡️</div>
+              <div>
+                <strong>Secure Password</strong>
+                <p>Your password must be at least 6 characters long for system security.</p>
               </div>
-            </aside>
+            </div>
+
+            <div className="stat-card-v3" style={{ background: 'var(--glass)', marginTop: 'auto' }}>
+              <span>Access Level</span>
+              <strong>Standard User Access</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', marginTop: '0.5rem' }}>
+                Note: Admin and Maintenance roles are assigned by system administrators after registration.
+              </p>
+            </div>
+          </div>
+
+          <div className="auth-card-v3 animate-fade-in">
+            <div className="form-header" style={{ marginBottom: '2rem' }}>
+              <h3>Account Details</h3>
+              <p>Complete the form below to register</p>
+            </div>
+
+            <form className="modern-form-wrap" onSubmit={handleRegisterSubmit}>
+              <label className="modern-label">
+                Full Name
+                <input
+                  className="modern-input"
+                  value={registerForm.fullName}
+                  onChange={(event) => setRegisterForm((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="e.g. Nethmi Perera"
+                />
+              </label>
+
+              <label className="modern-label">
+                Campus Email
+                <input
+                  required
+                  type="email"
+                  className="modern-input"
+                  value={registerForm.email}
+                  onChange={(event) => setRegisterForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="e.g. user@my.sliit.lk"
+                />
+              </label>
+
+              <div className="form-grid-2">
+                <label className="modern-label">
+                  Password
+                  <input
+                    required
+                    type={showPassword ? "text" : "password"}
+                    className="modern-input"
+                    value={registerForm.password}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, password: event.target.value }))}
+                    placeholder="••••••"
+                  />
+                </label>
+                <label className="modern-label">
+                  Confirm
+                  <input
+                    required
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="modern-input"
+                    value={registerForm.confirmPassword}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    placeholder="••••••"
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                <button type="submit" className="tiny-btn" style={{ width: '100%', padding: '1rem', background: 'var(--ink)', color: 'white' }}>
+                  Register Account
+                </button>
+                <button
+                  type="button"
+                  className="tiny-btn"
+                  style={{ width: '100%', padding: '1rem', background: 'white', border: '1px solid var(--line)' }}
+                  onClick={() => {
+                    clearMessages();
+                    setCurrentDashboard("login");
+                  }}
+                >
+                  Return to Login
+                </button>
+              </div>
+            </form>
           </div>
         </section>
 
-
-        {errorMessage && (
-          <div className="toast-message error">
-            <span>{errorMessage}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="toast-message success">
-            <span>{successMessage}</span>
-          </div>
-        )}
+        {errorMessage && <div className="toast-message error animate-fade-in"><span>{errorMessage}</span></div>}
+        {successMessage && <div className="toast-message success animate-fade-in"><span>{successMessage}</span></div>}
       </div>
     </main>
   );
