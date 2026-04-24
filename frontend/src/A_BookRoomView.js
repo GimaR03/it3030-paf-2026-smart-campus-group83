@@ -32,6 +32,7 @@ export default function ABookRoomView({
   rooms,
   bookNotifications,
   clearBookNotifications,
+  authUser,
 }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showNotifications, setShowNotifications] = useState(false);
@@ -134,14 +135,19 @@ export default function ABookRoomView({
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
-      <div className="dashboard-wrap">
-        <header className="hero-banner portal-hero booking-hero">
-          <div className="hero-head-row">
-            <span className="hero-tag">Smart Campus Access</span>
-            <div className="table-actions booking-top-actions">
+      <div className="dashboard-wrap portal-container">
+        <div className="portal-top-bar">
+          <div className="user-profile-badge">
+            <div className="user-avatar">{authUser?.fullName?.charAt(0) || "U"}</div>
+            <div className="user-text">
+              <span className="user-name">{authUser?.fullName || "User"}</span>
+              <span className="user-role">Campus Member</span>
+            </div>
+          </div>
+          <div className="hero-actions">
               <button
                 type="button"
-                className="tiny-btn booking-btn booking-btn-secondary"
+                className="tiny-btn"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("ticket");
@@ -151,35 +157,37 @@ export default function ABookRoomView({
               </button>
               <button
                 type="button"
-                className="tiny-btn booking-btn booking-btn-secondary"
+                className="tiny-btn"
                 onClick={() => setShowNotifications((current) => !current)}
               >
                 Notifications ({bookNotifications.length})
               </button>
-              <button
-                type="button"
-                className="tiny-btn logout-btn"
-                onClick={handleLogout}
-              >
-                Logout
+              <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
+                🚪 Logout
               </button>
               <button
                 type="button"
-                className="tiny-btn booking-btn booking-btn-ghost"
+                className="tiny-btn"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("portal");
                 }}
               >
-                Back To Dashboard
+                ← Portal
               </button>
-            </div>
           </div>
-          <h1>Book Modern Halls And Rooms</h1>
-          <p>
-            Explore colorful room availability, pick the best space faster, and submit
-            booking requests with a cleaner modern experience.
-          </p>
+        </div>
+
+        <header className="hero-banner admin-hero-v3">
+          <div className="hero-content">
+            <span className="hero-tag">✦ Smart Campus Access</span>
+            <h1>Room Booking</h1>
+            <p>
+              Find and reserve available campus resources. Use our interactive map to select the perfect space for your needs.
+            </p>
+          </div>
+        </header>
+
           <div className="booking-hero-strip">
             <div className="booking-hero-card">
               <span>Live rooms</span>
@@ -267,7 +275,6 @@ export default function ABookRoomView({
               )}
             </article>
           )}
-        </header>
 
         <div className="book-room-container">
           <section className="booking-main-grid">
@@ -292,8 +299,14 @@ export default function ABookRoomView({
                   <strong>{selectedRoom?.name || "Choose from below"}</strong>
                 </div>
                 <div className="booking-highlight-card">
-                  <span>Building</span>
-                  <strong>{selectedRoom?.buildingName || bookRoomSelectedBuilding?.name || "-"}</strong>
+                  <span>Location</span>
+                  <strong>
+                    {selectedRoom 
+                      ? `${selectedRoom.buildingName} - Floor ${selectedRoom.floorLabel}`
+                      : bookRoomSelectedFloor 
+                        ? `${bookRoomSelectedBuilding.name} - Floor ${bookRoomSelectedFloor.label || bookRoomSelectedFloor.floorNumber}`
+                        : "-"}
+                  </strong>
                 </div>
                 <div className="booking-highlight-card">
                   <span>Capacity</span>
@@ -449,40 +462,34 @@ export default function ABookRoomView({
           </section>
 
           <div className="book-room-selectors booking-selectors-modern">
-            <div className="selector-group">
-              <label>Select Building</label>
+            <div className="selector-group combined-selector">
+              <label>Select Location (Building & Floor)</label>
               <select
-                value={bookRoomSelectedBuildingId || ""}
+                value={bookRoomSelectedFloorId ? `${bookRoomSelectedBuildingId}_${bookRoomSelectedFloorId}` : ""}
                 onChange={(event) => {
-                  setBookRoomSelectedBuildingId(event.target.value);
-                  setBookRoomSelectedFloorId(null);
+                  const val = event.target.value;
+                  if (!val) {
+                    setBookRoomSelectedBuildingId(null);
+                    setBookRoomSelectedFloorId(null);
+                  } else {
+                    const [bId, fId] = val.split("_");
+                    setBookRoomSelectedBuildingId(bId);
+                    setBookRoomSelectedFloorId(fId);
+                  }
                 }}
               >
-                <option value="">-- Choose a Building --</option>
+                <option value="">-- Choose Building & Floor --</option>
                 {buildings.map((building) => (
-                  <option key={building.id} value={building.id}>
-                    Building {building.buildingNo}
-                  </option>
+                  <optgroup key={building.id} label={`Building ${building.buildingNo}: ${building.name}`}>
+                    {building.floors?.map((floor) => (
+                      <option key={floor.id} value={`${building.id}_${floor.id}`}>
+                        Building {building.buildingNo} - Floor {floor.label || floor.floorNumber}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
-
-            {bookRoomSelectedBuilding && (
-              <div className="selector-group">
-                <label>Select Floor</label>
-                <select
-                  value={bookRoomSelectedFloorId || ""}
-                  onChange={(event) => setBookRoomSelectedFloorId(event.target.value)}
-                >
-                  <option value="">-- Choose a Floor --</option>
-                  {bookRoomFloors.map((floor) => (
-                    <option key={floor.id} value={floor.id}>
-                      Floor {floor.floorNumber ?? floor.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           {bookRoomSelectedFloor && (
@@ -607,63 +614,94 @@ export default function ABookRoomView({
               {filteredBookings.length === 0 ? (
                 <p className="empty">No bookings found for this user.</p>
               ) : (
-                <div className="table-wrap booking-table-shell">
-                  <table className="compact-table booking-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Building</th>
-                        <th>Floor</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Expected Attendees</th>
-                        <th>Purpose</th>
-                        <th>Status</th>
-                        <th>Details</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredBookings.map((booking) => {
-                        const room = roomLookup.get(String(booking.resourceId));
-                        const detailsText =
-                          booking.status === "CANCELLED"
-                            ? booking.cancellationReason || "-"
-                            : booking.adminReason || "-";
-                        return (
-                          <tr key={booking.id}>
-                            <td>{booking.id}</td>
-                            <td>{booking.buildingName || room?.buildingName || "-"}</td>
-                            <td>{booking.floorLabel || room?.floorLabel || "-"}</td>
-                            <td>{booking.date}</td>
-                            <td>
-                              {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
-                            </td>
-                            <td>{booking.expectedAttendees ?? "-"}</td>
-                            <td>{booking.purpose}</td>
-                            <td>
-                              <span
-                                className={`booking-status-badge ${booking.status.toLowerCase()}`}
-                              >
-                                {booking.status}
+                <div className="ticket-grid-modern">
+                  {filteredBookings.map((booking) => {
+                    const room = roomLookup.get(String(booking.resourceId));
+                    const detailsText =
+                      booking.status === "CANCELLED"
+                        ? booking.cancellationReason || "-"
+                        : booking.adminReason || "-";
+                    const buildingLabel = booking.buildingName || room?.buildingName || "-";
+                    const floorLabel = booking.floorLabel || room?.floorLabel || "-";
+                    // For the glow / tone logic, you can reuse getTicketStatusTone if needed, 
+                    // or just write a small helper logic here based on booking status.
+                    let tone = "open";
+                    if (booking.status === "APPROVED") tone = "resolved";
+                    if (booking.status === "REJECTED" || booking.status === "CANCELLED") tone = "closed";
+                    if (booking.status === "PENDING") tone = "progress";
+
+                    return (
+                      <article key={`booking-${booking.id}`} className={`ticket-card-modern status-${tone}`}>
+                        <div className="ticket-card-glow" />
+                        <div className="ticket-card-content">
+                          <div className="ticket-card-header-modern">
+                            <span className={`status-badge ${tone}`}>
+                              {booking.status}
+                            </span>
+                            <div className="ticket-priority-indicator">
+                               <span className="priority-dot medium" title="Booking" />
+                            </div>
+                          </div>
+                          
+                          <h3>{buildingLabel} - Floor {floorLabel}</h3>
+                          <p className="ticket-desc-short">{booking.purpose}</p>
+                          
+                          <div className="ticket-info-group">
+                            <div className="info-item">
+                              <span className="info-label">Date</span>
+                              <span className="info-value">{booking.date}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-label">Time</span>
+                              <span className="info-value">
+                                {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
                               </span>
-                            </td>
-                            <td>{detailsText}</td>
-                            <td>
-                              <button
-                                type="button"
-                                className="tiny-btn booking-btn booking-btn-danger"
-                                onClick={() => handleCancelMyBooking(booking)}
-                                disabled={booking.status !== "APPROVED"}
-                              >
-                                Cancel
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            </div>
+                            <div className="info-item full">
+                              <span className="info-label">Expected Attendees</span>
+                              <span className="info-value">{booking.expectedAttendees ?? "-"}</span>
+                            </div>
+                          </div>
+
+                          {detailsText !== "-" && (
+                            <div className="ticket-info-group" style={{ marginTop: '0.5rem' }}>
+                              <div className="info-item full">
+                                <span className="info-label">Admin / Details</span>
+                                <span className="info-value">{detailsText}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="ticket-card-footer-modern" style={{ marginTop: '1rem', borderTop: '1px solid rgba(20, 35, 31, 0.08)', paddingTop: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="footer-meta">
+                               <span className="reported-date">🆔 Booking #{booking.id}</span>
+                            </div>
+                            <div className="table-actions">
+                               <button
+                                 type="button"
+                                 className="tiny-btn booking-btn booking-btn-primary"
+                                 disabled={booking.status !== "APPROVED" && booking.status !== "PENDING"}
+                                 onClick={() => {
+                                   clearMessages();
+                                   setErrorMessage("Modify booking is not yet supported. Please cancel and re-book if needed.");
+                                 }}
+                               >
+                                 Modify
+                               </button>
+                               <button
+                                 type="button"
+                                 className="tiny-btn booking-btn booking-btn-danger"
+                                 onClick={() => handleCancelMyBooking(booking)}
+                                 disabled={booking.status !== "APPROVED" && booking.status !== "PENDING"}
+                               >
+                                 Cancel
+                               </button>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </article>
