@@ -5,11 +5,35 @@ export default function APortalView({
   buildingsCount = 0,
   roomsCount = 0,
   ticketsCount = 0,
+  authUser,
+  handleLogout,
 }) {
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap portal-container">
+        <div className="portal-top-bar">
+          <div className="user-profile-badge">
+            <div className="user-avatar">
+              {authUser?.fullName?.charAt(0) || "U"}
+            </div>
+            <div className="user-text">
+              <span className="user-name">{authUser?.fullName || "Guest"}</span>
+              <span className="user-role">{authUser?.role || "Visitor"}</span>
+            </div>
+          </div>
+          {authUser && (
+            <button 
+              type="button" 
+              className="logout-nav-btn" 
+              onClick={handleLogout}
+            >
+              <span className="btn-icon">🚪</span>
+              <span className="btn-text">Logout</span>
+            </button>
+          )}
+        </div>
+
         <header className="hero-banner portal-hero-v2">
           <div className="hero-content">
             <span className="hero-tag">✦ Smart Campus Ecosystem</span>
