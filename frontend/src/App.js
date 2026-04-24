@@ -252,6 +252,7 @@ function App() {
   if (currentDashboard === "ticket-history") {
     return (
       <ATicketHistoryView
+        authUser={auth.authUser}
         myTicketHistory={tickets.tickets}
         myTicketStatusCount={tickets.ticketStatusCount}
         getTicketStatusTone={getTicketStatusTone}
@@ -288,6 +289,7 @@ function App() {
       {...resources}
       {...bookings}
       {...auth}
+      {...tickets}
       clearMessages={clearMessages}
       setCurrentDashboard={setCurrentDashboard}
       activeSection={activeSection}

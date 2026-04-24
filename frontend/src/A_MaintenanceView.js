@@ -1,4 +1,10 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import ATicketComments from "./ATicketComments";
+import {
+  getTicketNotifications,
+  markTicketNotificationsRead,
+  clearTicketNotifications,
+} from "./ticketNotifications";
 
 export default function AMaintenanceView({
   clearMessages,
@@ -6,6 +12,7 @@ export default function AMaintenanceView({
   handleLogout,
   authUser,
   tickets,
+  loadTickets,
   formatLabel,
   getTicketBuildingLabel,
   handleMaintenanceTicketAction,
@@ -14,6 +21,22 @@ export default function AMaintenanceView({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [pendingTicket, setPendingTicket] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (authUser?.userId) {
+      const notifs = getTicketNotifications(authUser.userId);
+      setNotifications(notifs.filter((n) => !n.read));
+      markTicketNotificationsRead(authUser.userId);
+    }
+  }, [authUser]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadTickets();
+    setRefreshing(false);
+  };
 
   const openTickets = tickets.filter((ticket) => ticket.status === "OPEN");
   const inProgressTickets = tickets.filter((ticket) => ticket.status === "IN_PROGRESS");
@@ -115,6 +138,15 @@ export default function AMaintenanceView({
             <div className="table-actions">
               <button
                 type="button"
+                className="tiny-btn"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="Refresh assigned tickets"
+              >
+                {refreshing ? "⏳ Refreshing..." : "🔄 Refresh Tickets"}
+              </button>
+              <button
+                type="button"
                 className="tiny-btn hero-back"
                 onClick={() => {
                   clearMessages();
@@ -156,6 +188,34 @@ export default function AMaintenanceView({
           </article>
         </section>
 
+        {/* Notifications Banner */}
+        {notifications.length > 0 && (
+          <article className="glass-panel" style={{ marginBottom: "1rem", border: "1px solid rgba(74,222,128,0.4)", background: "rgba(74,222,128,0.08)" }}>
+            <div className="panel-header-actions">
+              <h3 style={{ margin: 0, fontSize: "1rem" }}>🔔 New Tickets Assigned To You</h3>
+              <button
+                type="button"
+                className="tiny-btn"
+                onClick={() => {
+                  clearTicketNotifications(authUser?.userId);
+                  setNotifications([]);
+                }}
+              >
+                Dismiss All
+              </button>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0 0" }}>
+              {notifications.map((n) => (
+                <li key={n.id} style={{ padding: "0.4rem 0", borderBottom: "1px solid rgba(255,255,255,0.07)", fontSize: "0.9rem" }}>
+                  <span style={{ marginRight: "0.5rem" }}>🎫</span>
+                  {n.message}
+                  <small style={{ marginLeft: "0.75rem", opacity: 0.6 }}>{n.timestamp}</small>
+                </li>
+              ))}
+            </ul>
+          </article>
+        )}
+
         {/* Confirmation Dialog */}
         {showConfirmDialog && pendingTicket && (
           <div className="modal-overlay" onClick={cancelAction}>
@@ -195,6 +255,7 @@ export default function AMaintenanceView({
                   <thead>
                     <tr>
                       <th>ID</th>
+                      <th>Sender</th>
                       <th>Title</th>
                       <th>Category</th>
                       <th>Priority</th>
@@ -208,99 +269,107 @@ export default function AMaintenanceView({
                   </thead>
                   <tbody>
                     {tickets.map((ticket) => (
-                      <tr key={ticket.id}>
-                        <td>#{ticket.id}</td>
-                        <td>
-                          <strong>{ticket.title}</strong>
-                          <br />
-                          <small>{ticket.description?.substring(0, 50)}...</small>
-                        </td>
-                        <td>
-                          <span className="category-badge">
-                            {formatLabel(ticket.category)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`priority-badge ${getPriorityClass(ticket.priority)}`}>
-                            {formatLabel(ticket.priority)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${getStatusClass(ticket.status)}`}>
-                            {formatLabel(ticket.status)}
-                          </span>
-                        </td>
-                        <td>🏢 {getTicketBuildingLabel(ticket.resourceId)}</td>
-                        <td>📍 Floor {ticket.userId}</td>
-                        <td>🏠 {ticket.assignedTechnicianId || "Not specified"}</td>
-                        <td>
-                          <small>{ticket.createdDate?.replace("T", " ")}</small>
-                        </td>
-                        <td>
-                          <div className="table-actions" style={{ gap: "0.3rem", flexWrap: "wrap" }}>
-                            {ticket.status === "OPEN" && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="tiny-btn"
-                                  onClick={() => handleActionClick(ticket, "ACCEPT")}
-                                  title="Accept this ticket"
-                                >
-                                  ✓ Accept
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tiny-btn danger"
-                                  onClick={() => handleActionClick(ticket, "REJECT")}
-                                  title="Reject this ticket"
-                                >
-                                  ✗ Reject
-                                </button>
-                              </>
-                            )}
-                            
-                            {ticket.status === "IN_PROGRESS" && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="tiny-btn"
-                                  onClick={() => handleActionClick(ticket, "RESOLVED")}
-                                  title="Mark as resolved"
-                                >
-                                  ✅ Resolved
-                                </button>
-                                <button
-                                  type="button"
-                                  className="tiny-btn danger"
-                                  onClick={() => handleActionClick(ticket, "CANCEL")}
-                                  title="Cancel this ticket"
-                                >
-                                  ❌ Cancel
-                                </button>
-                              </>
-                            )}
-                            
-                            {ticket.status === "OPEN" && (
-                              <button
-                                type="button"
-                                className="tiny-btn"
-                                onClick={() => handleActionClick(ticket, "IN_PROGRESS")}
-                                title="Start working on this ticket"
-                              >
-                                🔄 In Process
-                              </button>
-                            )}
+                      <React.Fragment key={ticket.id}>
+                        <tr>
+                          <td>#{ticket.id}</td>
+                          <td>{ticket.creatorName || "Unknown"}</td>
+                          <td>
+                            <strong>{ticket.title}</strong>
+                            <br />
+                            <small>{ticket.description?.substring(0, 50)}...</small>
+                          </td>
+                          <td>
+                            <span className="category-badge">
+                              {formatLabel(ticket.category)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`priority-badge ${getPriorityClass(ticket.priority)}`}>
+                              {formatLabel(ticket.priority)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${getStatusClass(ticket.status)}`}>
+                              {formatLabel(ticket.status)}
+                            </span>
+                          </td>
+                          <td>🏢 {getTicketBuildingLabel(ticket.resourceId)}</td>
+                          <td>📍 Floor {ticket.userId}</td>
+                          <td>🏠 {ticket.assignedTechnicianId || "Not specified"}</td>
+                          <td>
+                            <small>{ticket.createdDate?.replace("T", " ")}</small>
+                          </td>
+                          <td>
+                            <div className="table-actions" style={{ gap: "0.3rem", flexWrap: "wrap" }}>
+                              {ticket.status === "OPEN" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tiny-btn"
+                                    onClick={() => handleActionClick(ticket, "ACCEPT")}
+                                    title="Accept this ticket"
+                                  >
+                                    ✓ Accept
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="tiny-btn danger"
+                                    onClick={() => handleActionClick(ticket, "REJECT")}
+                                    title="Reject this ticket"
+                                  >
+                                    ✗ Reject
+                                  </button>
+                                </>
+                              )}
 
-                            {ticket.status === "RESOLVED" && (
-                              <span className="resolved-label">✓ Completed</span>
-                            )}
-                            
-                            {ticket.status === "CLOSED" && (
-                              <span className="closed-label">✗ Closed</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                              {ticket.status === "IN_PROGRESS" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tiny-btn"
+                                    onClick={() => handleActionClick(ticket, "RESOLVED")}
+                                    title="Mark as resolved"
+                                  >
+                                    ✅ Resolved
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="tiny-btn danger"
+                                    onClick={() => handleActionClick(ticket, "CANCEL")}
+                                    title="Cancel this ticket"
+                                  >
+                                    ❌ Cancel
+                                  </button>
+                                </>
+                              )}
+
+                              {ticket.status === "OPEN" && (
+                                <button
+                                  type="button"
+                                  className="tiny-btn"
+                                  onClick={() => handleActionClick(ticket, "IN_PROGRESS")}
+                                  title="Start working on this ticket"
+                                >
+                                  🔄 In Process
+                                </button>
+                              )}
+
+                              {ticket.status === "RESOLVED" && (
+                                <span className="resolved-label">✓ Completed</span>
+                              )}
+
+                              {ticket.status === "CLOSED" && (
+                                <span className="closed-label">✗ Closed</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan="11" style={{ padding: "0.5rem", background: "rgba(0,0,0,0.1)" }}>
+                            <ATicketComments ticketId={ticket.id} authUser={authUser} />
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

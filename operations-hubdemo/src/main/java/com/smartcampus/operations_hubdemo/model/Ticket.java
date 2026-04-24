@@ -62,7 +62,29 @@ public class Ticket {
     @Column(name = "image_url", nullable = false, length = 500)
     private List<String> imageUrls = new ArrayList<>();
 
+    @Column(name = "creator_id")
+    private Long creatorId;
+
+    @Column(name = "assigned_maintenance_id")
+    private Long assignedMaintenanceId;
+
     public Ticket() {
+    }
+
+    public Long getAssignedMaintenanceId() {
+        return assignedMaintenanceId;
+    }
+
+    public void setAssignedMaintenanceId(Long assignedMaintenanceId) {
+        this.assignedMaintenanceId = assignedMaintenanceId;
+    }
+
+    public Long getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
     }
 
     public Long getId() {

@@ -72,6 +72,8 @@ export default function A_AdminDashboardView({
   allUsers,
   loadAllUsers,
   handleDeleteUser,
+  tickets,
+  handleAssignTicket,
 }) {
   return (
     <main className="dashboard-shell">
@@ -1127,6 +1129,63 @@ export default function A_AdminDashboardView({
                               </div>
                             </td>
                           </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </article>
+            )}
+
+            {activeSection === "ticket-management" && (
+              <article className="glass-panel">
+                <div className="panel-header-actions">
+                  <h2>Ticket Assignments</h2>
+                </div>
+                <p className="summary-note">
+                  Assign open or in-progress tickets to maintenance staff.
+                </p>
+
+                {(!tickets || tickets.length === 0) ? (
+                  <p className="empty">No tickets available.</p>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="compact-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Sender</th>
+                          <th>Title</th>
+                          <th>Status</th>
+                          <th>Assigned To</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tickets.map((ticket) => {
+                          const assignedUser = maintenanceStaff?.find(s => String(s.id) === String(ticket.assignedMaintenanceId));
+                          return (
+                            <tr key={ticket.id}>
+                              <td>#{ticket.id}</td>
+                              <td>{ticket.creatorName || "Unknown"}</td>
+                              <td>{ticket.title}</td>
+                              <td>{ticket.status}</td>
+                              <td>{assignedUser ? assignedUser.fullName : "Unassigned"}</td>
+                              <td>
+                                <select 
+                                  className="tiny-btn"
+                                  style={{ padding: "0.2rem" }}
+                                  value={ticket.assignedMaintenanceId || ""}
+                                  onChange={(e) => handleAssignTicket(ticket.id, e.target.value)}
+                                >
+                                  <option value="">Assign...</option>
+                                  {maintenanceStaff?.map(staff => (
+                                    <option key={staff.id} value={staff.id}>{staff.fullName}</option>
+                                  ))}
+                                </select>
+                              </td>
+                            </tr>
                           );
                         })}
                       </tbody>

@@ -38,6 +38,13 @@ export const dashboardActions = [
     accent: "leaf",
     icon: "📋",
   },
+  {
+    id: "ticket-management",
+    title: "Ticket Assignments",
+    subtitle: "Assign tickets to maintenance",
+    accent: "sky",
+    icon: "🎫",
+  },
 ];
 
 export const portalActions = [

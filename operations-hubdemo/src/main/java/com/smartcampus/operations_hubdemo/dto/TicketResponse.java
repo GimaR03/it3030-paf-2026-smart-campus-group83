@@ -18,6 +18,9 @@ public record TicketResponse(
         Long userId,
         String assignedTechnicianId,
         List<String> imageUrls,
-        LocalDateTime createdDate
+        LocalDateTime createdDate,
+        String creatorName,
+        Long creatorId,
+        Long assignedMaintenanceId
 ) {
 }

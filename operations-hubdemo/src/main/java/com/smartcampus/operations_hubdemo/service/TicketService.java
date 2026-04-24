@@ -25,9 +25,15 @@ public class TicketService {
     private static final Path UPLOAD_ROOT = Paths.get("uploads", "tickets");
 
     private final TicketRepository ticketRepository;
+    private final com.smartcampus.operations_hubdemo.repository.CampusUserRepository userRepository;
+    private final com.smartcampus.operations_hubdemo.repository.TicketCommentRepository commentRepository;
 
-    public TicketService(TicketRepository ticketRepository) {
+    public TicketService(TicketRepository ticketRepository, 
+            com.smartcampus.operations_hubdemo.repository.CampusUserRepository userRepository,
+            com.smartcampus.operations_hubdemo.repository.TicketCommentRepository commentRepository) {
         this.ticketRepository = ticketRepository;
+        this.userRepository = userRepository;
+        this.commentRepository = commentRepository;
     }
 
     public List<TicketResponse> getTickets() {
@@ -37,17 +43,61 @@ public class TicketService {
                 .toList();
     }
 
-    public List<TicketResponse> getTicketsByUserId(Long userId) {
-        return ticketRepository.findByUserId(userId).stream()
+    public List<TicketResponse> getTicketsByCreatorId(Long creatorId) {
+        return ticketRepository.findByCreatorId(creatorId).stream()
+                .sorted(Comparator.comparing(Ticket::getCreatedDate).reversed())
+                .map(this::toTicketResponse)
+                .toList();
+    }
+
+    public List<TicketResponse> getTicketsByAssignedMaintenanceId(Long maintenanceId) {
+        return ticketRepository.findByAssignedMaintenanceId(maintenanceId).stream()
                 .sorted(Comparator.comparing(Ticket::getCreatedDate).reversed())
                 .map(this::toTicketResponse)
                 .toList();
     }
 
     @Transactional
-    public TicketResponse createTicket(CreateTicketRequest request, List<MultipartFile> images) {
+    public TicketResponse assignMaintenance(Long ticketId, Long maintenanceId) {
+        Ticket ticket = findTicket(ticketId);
+        ticket.setAssignedMaintenanceId(maintenanceId);
+        return toTicketResponse(ticketRepository.save(ticket));
+    }
+
+    @Transactional
+    public com.smartcampus.operations_hubdemo.dto.TicketCommentDto addComment(Long ticketId, Long authorId, String content) {
+        Ticket ticket = findTicket(ticketId);
+        com.smartcampus.operations_hubdemo.model.TicketComment comment = new com.smartcampus.operations_hubdemo.model.TicketComment();
+        comment.setTicketId(ticketId);
+        comment.setAuthorId(authorId);
+        comment.setContent(content);
+        comment.setCreatedAt(java.time.LocalDateTime.now());
+        
+        String authorName = userRepository.findById(authorId)
+            .map(com.smartcampus.operations_hubdemo.model.CampusUser::getFullName)
+            .orElse("Unknown");
+        comment.setAuthorName(authorName);
+        
+        comment = commentRepository.save(comment);
+        return new com.smartcampus.operations_hubdemo.dto.TicketCommentDto(
+            comment.getId(), comment.getTicketId(), comment.getAuthorId(),
+            comment.getAuthorName(), comment.getContent(), comment.getCreatedAt()
+        );
+    }
+
+    public List<com.smartcampus.operations_hubdemo.dto.TicketCommentDto> getComments(Long ticketId) {
+        return commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
+            .map(c -> new com.smartcampus.operations_hubdemo.dto.TicketCommentDto(
+                c.getId(), c.getTicketId(), c.getAuthorId(),
+                c.getAuthorName(), c.getContent(), c.getCreatedAt()
+            )).toList();
+    }
+
+    @Transactional
+    public TicketResponse createTicket(CreateTicketRequest request, Long creatorId, List<MultipartFile> images) {
         Ticket ticket = new Ticket();
         applyTicketFields(ticket, request);
+        ticket.setCreatorId(creatorId);
         ticket.setImageUrls(storeImages(images));
 
         Ticket saved = ticketRepository.save(ticket);
@@ -55,9 +105,10 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updateTicket(Long ticketId, CreateTicketRequest request) {
+    public TicketResponse updateTicket(Long ticketId, CreateTicketRequest request, Long creatorId) {
         Ticket ticket = findTicket(ticketId);
         applyTicketFields(ticket, request);
+        ticket.setCreatorId(creatorId != null ? creatorId : ticket.getCreatorId());
         Ticket saved = ticketRepository.save(ticket);
         return toTicketResponse(saved);
     }
@@ -69,7 +120,7 @@ public class TicketService {
         ticketRepository.delete(ticket);
     }
 
-    private Ticket findTicket(Long ticketId) {
+    public Ticket findTicket(Long ticketId) {
         return ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
     }
@@ -150,6 +201,12 @@ public class TicketService {
     }
 
     private TicketResponse toTicketResponse(Ticket ticket) {
+        String creatorName = "Unknown User";
+        if (ticket.getCreatorId() != null) {
+            creatorName = userRepository.findById(ticket.getCreatorId())
+                    .map(com.smartcampus.operations_hubdemo.model.CampusUser::getFullName)
+                    .orElse("Unknown User");
+        }
         return new TicketResponse(
                 ticket.getId(),
                 ticket.getTitle(),
@@ -161,7 +218,10 @@ public class TicketService {
                 ticket.getUserId(),
                 ticket.getAssignedTechnicianId(),
                 new ArrayList<>(ticket.getImageUrls()),
-                ticket.getCreatedDate()
+                ticket.getCreatedDate(),
+                creatorName,
+                ticket.getCreatorId(),
+                ticket.getAssignedMaintenanceId()
         );
     }
 }

@@ -278,22 +278,60 @@ export function deleteRoom(roomId) {
   });
 }
 
-export function fetchTickets(userId) {
-  const url = userId ? `/tickets?userId=${userId}` : "/tickets";
-  return request(url);
+export function fetchTickets({ userId, role }) {
+  return request("/tickets", {
+    method: "GET",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
+  });
 }
 
-export function createTicket(ticketData) {
+export function createTicket(ticketData, { userId, role } = {}) {
   return request("/tickets", {
     method: "POST",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
     body: ticketData,
   });
 }
 
-export function updateTicket(ticketId, ticketData) {
+export function updateTicket(ticketId, ticketData, { userId, role } = {}) {
   return request(`/tickets/${ticketId}`, {
     method: "PUT",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
     body: JSON.stringify(ticketData),
+  });
+}
+
+export function assignTicketToMaintenance(ticketId, maintenanceUserId, { role } = {}) {
+  return request(`/tickets/${ticketId}/assign`, {
+    method: "POST",
+    headers: {
+      "X-User-Role": role || "",
+    },
+    body: JSON.stringify({ maintenanceUserId }),
+  });
+}
+
+export function getTicketComments(ticketId) {
+  return request(`/tickets/${ticketId}/comments`);
+}
+
+export function addTicketComment(ticketId, content, { userId, role } = {}) {
+  return request(`/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: {
+      "X-User-Id": String(userId || ""),
+      "X-User-Role": role || "",
+    },
+    body: JSON.stringify({ content }),
   });
 }
 

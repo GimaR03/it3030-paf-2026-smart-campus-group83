@@ -7,6 +7,7 @@ import {
 } from "../api/campusApi";
 import { getCurrentDateTimeValue, getTicketBuildingLabel } from "../A_helpers";
 import { ticketBuildingOptions, MAX_TICKET_IMAGE_SIZE_BYTES, MAX_TICKET_IMAGE_REQUEST_BYTES } from "../A_constants";
+import { dispatchTicketNotification } from "../ticketNotifications";
 
 export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMessages, setCurrentDashboard, authUser }) {
   const [tickets, setTickets] = useState([]);
@@ -35,11 +36,10 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
       return;
     }
     try {
-      // Admins and Maintenance see everything. Regular users only see their own.
-      const isStaff = authUser.role === "ADMIN" || authUser.role === "MAINTENANCE";
-      const userId = isStaff ? null : authUser.id;
-      
-      const data = await fetchTickets(userId);
+      const data = await fetchTickets({ 
+        userId: authUser.userId, 
+        role: authUser.role 
+      });
       setTickets(data);
     } catch (error) {
       setErrorMessage(error.message);
@@ -52,14 +52,20 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
     try {
       if (editingTicketId) {
         const payload = buildTicketUpdatePayload(ticketForm);
-        const updated = await updateTicketApi(editingTicketId, payload);
+        const updated = await updateTicketApi(editingTicketId, payload, {
+          userId: authUser.userId,
+          role: authUser.role,
+        });
         setTickets((curr) => curr.map((t) => (t.id === editingTicketId ? updated : t)));
         setEditingTicketId(null);
         setSuccessMessage(`Ticket updated.`);
         setCurrentDashboard("ticket-history");
       } else {
         validateTicketImages(ticketForm.images);
-        const saved = await createTicket(buildTicketFormData(ticketForm));
+        const saved = await createTicket(buildTicketFormData(ticketForm), {
+          userId: authUser.userId,
+          role: authUser.role,
+        });
         setTickets((curr) => [saved, ...curr]);
         setLatestSubmittedTicket(saved);
         setSuccessMessage(`Ticket created.`);
@@ -130,10 +136,55 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
   const handleMaintenanceTicketAction = async (ticket, action) => {
     clearMessages();
     try {
-      const payload = { ...ticket, status: action };
-      const updated = await updateTicketApi(ticket.id, payload);
+      const statusMap = {
+        RESOLVED: "RESOLVED",
+        CANCEL: "CLOSED",
+        IN_PROGRESS: "IN_PROGRESS",
+        ACCEPT: "IN_PROGRESS",
+        REJECT: "CLOSED",
+      };
+      const newStatus = statusMap[action] || action;
+      const payload = { ...ticket, status: newStatus };
+      const updated = await updateTicketApi(ticket.id, payload, {
+        userId: authUser.userId,
+        role: authUser.role,
+      });
       setTickets((curr) => curr.map((t) => (t.id === ticket.id ? updated : t)));
-      setSuccessMessage(`Ticket ${action}.`);
+      setSuccessMessage(`Ticket status updated to ${newStatus}.`);
+
+      // Dispatch an in-app notification for the ticket creator
+      dispatchTicketNotification({
+        type: "STATUS_CHANGE",
+        ticketId: ticket.id,
+        ticketTitle: ticket.title,
+        newStatus,
+        creatorId: ticket.creatorId,
+      });
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleAssignTicket = async (ticketId, maintenanceUserId) => {
+    clearMessages();
+    if (!maintenanceUserId) return;
+    try {
+      const { assignTicketToMaintenance } = await import("../api/campusApi");
+      const updated = await assignTicketToMaintenance(ticketId, Number(maintenanceUserId), {
+        role: authUser.role,
+      });
+      setTickets((curr) => curr.map((t) => (t.id === ticketId ? updated : t)));
+      setSuccessMessage("Ticket assigned to maintenance.");
+
+      // Notify the maintenance user
+      dispatchTicketNotification({
+        type: "ASSIGNED",
+        ticketId: updated.id,
+        ticketTitle: updated.title,
+        newStatus: updated.status,
+        creatorId: Number(maintenanceUserId), // re-use creatorId slot for maintenance user
+        message: `A new ticket #${updated.id} "${updated.title}" has been assigned to you.`,
+      });
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -217,6 +268,7 @@ export function useCampusTickets({ setErrorMessage, setSuccessMessage, clearMess
     handleStartTicketEdit,
     handleCancelTicketEdit,
     handleMaintenanceTicketAction,
+    handleAssignTicket,
     ticketLocationSummary,
     selectedTicketBuilding,
     ticketFloorOptions,

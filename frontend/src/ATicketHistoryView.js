@@ -1,7 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { formatLabel } from "./A_helpers";
+import ATicketComments from "./ATicketComments";
+import {
+  getTicketNotifications,
+  markTicketNotificationsRead,
+  clearTicketNotifications,
+} from "./ticketNotifications";
 
 export default function ATicketHistoryView({
+  authUser,
   myTicketHistory,
   myTicketStatusCount,
   getTicketStatusTone,
@@ -14,6 +21,16 @@ export default function ATicketHistoryView({
   successMessage,
   handleLogout,
 }) {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    if (authUser?.userId) {
+      const notifs = getTicketNotifications(authUser.userId);
+      setNotifications(notifs.filter((n) => !n.read));
+      markTicketNotificationsRead(authUser.userId);
+    }
+  }, [authUser]);
+
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
@@ -64,6 +81,35 @@ export default function ATicketHistoryView({
 
         {errorMessage && <p className="message error">{errorMessage}</p>}
         {successMessage && <p className="message success">{successMessage}</p>}
+
+        {notifications.length > 0 && (
+          <article className="glass-panel" style={{ marginBottom: "1rem", border: "1px solid rgba(74,158,255,0.4)", background: "rgba(74,158,255,0.08)" }}>
+            <div className="panel-header-actions">
+              <h3 style={{ margin: 0, fontSize: "1rem" }}>🔔 New Updates on Your Tickets</h3>
+              <button
+                type="button"
+                className="tiny-btn"
+                onClick={() => {
+                  clearTicketNotifications(authUser?.userId);
+                  setNotifications([]);
+                }}
+              >
+                Dismiss All
+              </button>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0 0" }}>
+              {notifications.map((n) => (
+                <li key={n.id} style={{ padding: "0.4rem 0", borderBottom: "1px solid rgba(255,255,255,0.07)", fontSize: "0.9rem" }}>
+                  <span style={{ marginRight: "0.75rem" }}>
+                    {n.type === "STATUS_CHANGE" ? "🔄" : "💬"}
+                  </span>
+                  {n.message}
+                  <small style={{ marginLeft: "0.75rem", opacity: 0.6 }}>{n.timestamp}</small>
+                </li>
+              ))}
+            </ul>
+          </article>
+        )}
 
         <section className="workspace">
           <article className="glass-panel ticket-history-panel premium">
@@ -153,6 +199,7 @@ export default function ATicketHistoryView({
                           </button>
                         </div>
                       </div>
+                      <ATicketComments ticketId={ticket.id} authUser={authUser} />
                     </div>
                   </article>
                 ))}
