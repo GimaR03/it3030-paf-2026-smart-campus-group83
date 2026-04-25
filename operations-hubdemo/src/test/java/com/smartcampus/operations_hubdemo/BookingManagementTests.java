@@ -1,5 +1,7 @@
 package com.smartcampus.operations_hubdemo;
 
+import com.smartcampus.operations_hubdemo.repository.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +25,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -47,6 +50,14 @@ class BookingManagementTests {
 
     @Autowired
     RoomRepository roomRepository;
+
+    @Autowired
+    BookingRepository bookingRepository;
+
+    @BeforeEach
+    void cleanBookings() {
+        bookingRepository.deleteAll();
+    }
 
     @Test
     void preventsOverlappingBookingsForSameResource() throws Exception {
@@ -157,6 +168,20 @@ class BookingManagementTests {
                         .content(payload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Selected room ID was not found. Please refresh and choose a valid room."));
+    }
+
+    @Test
+    void myBookingsReturnsOnlyCurrentUsersHistory() throws Exception {
+        createBooking(100);
+        createBooking(100);
+        createBooking(101);
+
+        mockMvc.perform(get("/api/bookings/me")
+                        .header("X-User-Id", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].requestedByUserId").value(100))
+                .andExpect(jsonPath("$[1].requestedByUserId").value(100));
     }
 
     private long createBooking(long userId) throws Exception {
