@@ -252,6 +252,9 @@ export default function ABookRoomView({
                 </div>
               </div>
 
+              {errorMessage && <p className="message error">{errorMessage}</p>}
+              {successMessage && <p className="message success">{successMessage}</p>}
+
               <div className="booking-highlight-strip">
                 <div className="booking-highlight-card">
                   <span>Selected room</span>
@@ -721,9 +724,6 @@ export default function ABookRoomView({
               )}
             </article>
           )}
-
-          {errorMessage && <p className="message error">{errorMessage}</p>}
-          {successMessage && <p className="message success">{successMessage}</p>}
         </div>
       </div>
     </main>
