@@ -213,20 +213,12 @@ export default function ATicketHistoryView({
                           </button>
                         </div>
                       </div>
-<<<<<<< HEAD
                       <ATicketComments
                         ticketId={ticket.id}
                         authUser={authUser}
                         ticketTitle={ticket.title}
                         ticketCreatorId={ticket.creatorId}
                         addSystemNotification={addSystemNotification}
-=======
-                      <ATicketComments 
-                        ticketId={ticket.id} 
-                        authUser={authUser} 
-                        ticketCreatorId={ticket.creatorId}
-                        ticketTitle={ticket.title}
->>>>>>> 7739b8ef9e5669723df5b8f97710a05470f4cde0
                       />
                     </div>
                   </article>
