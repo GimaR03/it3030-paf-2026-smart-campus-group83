@@ -342,7 +342,7 @@ export default function A_AdminDashboardView({
                     {admins && admins.length > 0 ? (
                       <ul className="staff-list admin-staff-list">
                         {admins.map((admin) => (
-                          <li key={admin.id} className="staff-item">
+                          <li key={admin.userId} className="staff-item">
                             <div>
                               <strong>{admin.fullName}</strong>
                               <span>{admin.email}</span>
@@ -430,7 +430,7 @@ export default function A_AdminDashboardView({
                     {maintenanceStaff && maintenanceStaff.length > 0 ? (
                       <ul className="staff-list admin-staff-list">
                         {maintenanceStaff.map((staff) => (
-                          <li key={staff.id} className="staff-item">
+                          <li key={staff.userId} className="staff-item">
                             <div>
                               <strong>{staff.fullName}</strong>
                               <span>{staff.email}</span>
@@ -483,8 +483,8 @@ export default function A_AdminDashboardView({
                       </thead>
                       <tbody>
                         {userAccounts.map((user) => (
-                          <tr key={user.id}>
-                            <td>{user.id}</td>
+                          <tr key={user.userId}>
+                            <td>{user.userId}</td>
                             <td>
                               <strong>{user.fullName}</strong>
                             </td>
@@ -497,7 +497,7 @@ export default function A_AdminDashboardView({
                               <button
                                 type="button"
                                 className="tiny-btn danger"
-                                onClick={() => handleDeleteUser(user.id)}
+                                onClick={() => handleDeleteUser(user.userId)}
                                 title="Delete User"
                               >
                                 Delete
@@ -1294,7 +1294,7 @@ export default function A_AdminDashboardView({
                       <tbody>
                         {tickets.map((ticket) => {
                           const assignedUser = maintenanceStaff?.find(
-                            (staff) => String(staff.id) === String(ticket.assignedMaintenanceId)
+                            (staff) => String(staff.userId) === String(ticket.assignedMaintenanceId)
                           );
                           return (
                             <tr key={ticket.id}>
@@ -1311,7 +1311,7 @@ export default function A_AdminDashboardView({
                                 >
                                   <option value="">Assign...</option>
                                   {maintenanceStaff?.map((staff) => (
-                                    <option key={staff.id} value={staff.id}>
+                                    <option key={staff.userId} value={staff.userId}>
                                       {staff.fullName}
                                     </option>
                                   ))}
