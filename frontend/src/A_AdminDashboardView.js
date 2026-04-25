@@ -74,6 +74,8 @@ export default function A_AdminDashboardView({
   handleDeleteUser,
   tickets,
   handleAssignTicket,
+  handleDeleteTicket,
+  handleMaintenanceTicketAction,
 }) {
   const userAccounts = (allUsers || []).filter((user) => user.role === "USER");
   const pendingBookings = (adminBookings || []).filter((booking) => booking.status === "PENDING").length;
@@ -110,16 +112,19 @@ export default function A_AdminDashboardView({
               <span className="user-role">Administrator</span>
             </div>
           </div>
-          <div className="hero-actions">
+          <div className="v6-nav-actions">
              <button
                 type="button"
-                className="tiny-btn"
+                className={`v6-action-pill ${adminNotifications.length > 0 ? 'has-alerts' : ''}`}
                 onClick={() => setShowAdminNotifications((current) => !current)}
               >
-                Notifications ({adminNotifications.length})
+                <span className="pill-icon">🔔</span>
+                <span className="pill-text">Notifications</span>
+                <span className="pill-badge">{adminNotifications.length}</span>
               </button>
-              <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
-                🚪 Logout
+              <button type="button" className="v6-action-pill danger" onClick={handleLogout}>
+                <span className="pill-icon">🚪</span>
+                <span className="pill-text">Logout</span>
               </button>
           </div>
         </div>
@@ -182,7 +187,11 @@ export default function A_AdminDashboardView({
                     <strong>{pendingBookings} Requests</strong>
                     <small>Requires Attention</small>
                   </article>
-                  <article className="stat-card-v3">
+                  <article 
+                    className="stat-card-v3 clickable" 
+                    onClick={() => setActiveSection("ticket-management")}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <span>Support Queue</span>
                     <strong>{openTickets} Tickets</strong>
                     <small>Maintenance Pending</small>
@@ -1304,18 +1313,31 @@ export default function A_AdminDashboardView({
                               <td>{ticket.status}</td>
                               <td>{assignedUser ? assignedUser.fullName : "Unassigned"}</td>
                               <td>
-                                <select
-                                  className="tiny-btn admin-select-inline"
-                                  value={ticket.assignedMaintenanceId || ""}
-                                  onChange={(event) => handleAssignTicket(ticket.id, event.target.value)}
-                                >
-                                  <option value="">Assign...</option>
-                                  {maintenanceStaff?.map((staff) => (
-                                    <option key={staff.userId} value={staff.userId}>
-                                      {staff.fullName}
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="table-actions">
+                                  {ticket.status === "SUBMITTED" && (
+                                    <button
+                                      type="button"
+                                      className="tiny-btn"
+                                      style={{ background: '#3182ce', color: 'white' }}
+                                      onClick={() => handleMaintenanceTicketAction(ticket, "APPROVE")}
+                                    >
+                                      Approve
+                                    </button>
+                                  )}
+                                  <select
+                                    className="tiny-btn admin-select-inline"
+                                    value={ticket.assignedMaintenanceId || ""}
+                                    onChange={(event) => handleAssignTicket(ticket.id, event.target.value)}
+                                    title="Assign this ticket to maintenance staff"
+                                  >
+                                    <option value="">Assign...</option>
+                                    {maintenanceStaff?.map((staff) => (
+                                      <option key={staff.userId} value={staff.userId}>
+                                        {staff.fullName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1331,6 +1353,83 @@ export default function A_AdminDashboardView({
       </section>
         </div>
       </div>
+      <style>{`
+        .v6-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .v6-action-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: #475569;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .v6-action-pill:hover {
+            background: #ffffff;
+            color: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .v6-action-pill.primary {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.primary:hover {
+            background: #0284c7;
+        }
+
+        .v6-action-pill.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .v6-action-pill.danger:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.has-alerts {
+            background: #fef08a;
+            color: #854d0e;
+        }
+
+        .v6-action-pill.has-alerts:hover {
+            background: #fde047;
+        }
+
+        .pill-icon {
+            font-size: 14px;
+        }
+
+        .pill-badge {
+            background: #ef4444;
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-left: 4px;
+        }
+      `}</style>
     </main>
   );
 }
