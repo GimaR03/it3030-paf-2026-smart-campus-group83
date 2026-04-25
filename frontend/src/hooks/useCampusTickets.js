@@ -184,7 +184,6 @@ export function useCampusTickets({
       setTickets((curr) => curr.map((t) => (t.id === ticketId ? updated : t)));
       setSuccessMessage(targetMaintenanceId ? "Ticket assigned to maintenance." : "Ticket unassigned.");
 
-<<<<<<< HEAD
       addSystemNotification(
         createNotification({
           type: "TICKET_ASSIGNED",
@@ -194,19 +193,6 @@ export function useCampusTickets({
           message: `You have been assigned ticket "${updated.title}".`,
         })
       );
-=======
-      // Notify the maintenance user if assigned
-      if (targetMaintenanceId) {
-        dispatchTicketNotification({
-          type: "ASSIGNED",
-          ticketId: updated.id,
-          ticketTitle: updated.title,
-          newStatus: updated.status,
-          creatorId: targetMaintenanceId, 
-          message: `A new ticket #${updated.id} "${updated.title}" has been assigned to you.`,
-        });
-      }
->>>>>>> 7739b8ef9e5669723df5b8f97710a05470f4cde0
     } catch (error) {
       setErrorMessage(error.message);
     }

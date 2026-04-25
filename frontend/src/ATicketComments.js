@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getTicketComments, addTicketComment } from "./api/campusApi";
-<<<<<<< HEAD
 import { createNotification } from "./notificationUtils";
+import { dispatchTicketNotification } from "./ticketNotifications";
 
 export default function ATicketComments({
   ticketId,
@@ -10,11 +10,6 @@ export default function ATicketComments({
   ticketCreatorId,
   addSystemNotification,
 }) {
-=======
-import { dispatchTicketNotification } from "./ticketNotifications";
-
-export default function ATicketComments({ ticketId, authUser, ticketCreatorId, ticketTitle }) {
->>>>>>> 7739b8ef9e5669723df5b8f97710a05470f4cde0
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);

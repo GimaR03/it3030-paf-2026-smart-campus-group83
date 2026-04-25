@@ -66,7 +66,7 @@ public class TicketService {
 
     @Transactional
     public com.smartcampus.operations_hubdemo.dto.TicketCommentDto addComment(Long ticketId, Long authorId, String content) {
-        Ticket ticket = findTicket(ticketId);
+        findTicket(ticketId); // Validate ticket exists
         com.smartcampus.operations_hubdemo.model.TicketComment comment = new com.smartcampus.operations_hubdemo.model.TicketComment();
         comment.setTicketId(ticketId);
         comment.setAuthorId(authorId);
