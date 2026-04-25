@@ -1,48 +1,54 @@
 import { useState } from "react";
 
-const loginHighlights = [
+const heroSignals = [
+  "📅 Room reservations",
+  "🛠️ Maintenance tracking",
+  "👩‍💼 Admin approvals",
+];
+
+const loginBenefits = [
   {
-    eyebrow: "Hall reservations",
-    title: "Plan rooms with less back-and-forth",
+    emoji: "📅",
+    title: "Manage reservations with clarity",
     description:
-      "Check availability, submit requests, and return to active bookings from one organized dashboard.",
-    icon: "RS",
+      "Check availability, submit bookings, and return to your latest requests without searching through scattered updates.",
   },
   {
-    eyebrow: "Ticket visibility",
-    title: "Follow maintenance progress clearly",
+    emoji: "🛠️",
+    title: "Follow support and maintenance progress",
     description:
-      "Track requests, technician updates, and operational changes without chasing scattered messages.",
-    icon: "TK",
+      "See issue reports, technician actions, and operational progress in one connected flow that feels easy to follow.",
   },
   {
-    eyebrow: "Admin control",
-    title: "Review approvals with the right context",
+    emoji: "🧭",
+    title: "Open a workspace built for your role",
     description:
-      "Keep reservations, facilities data, and staff workflows aligned in a shared campus workspace.",
-    icon: "AD",
+      "Students, staff, administrators, and maintenance teams each get a dashboard that keeps their most relevant tools close.",
   },
 ];
 
-const platformStats = [
-  { value: "3", label: "connected workflows in one place" },
-  { value: "24/7", label: "visibility into requests and updates" },
-  { value: "1", label: "shared hub for halls and facilities" },
+const trustNotes = [
+  {
+    emoji: "🔒",
+    title: "Secure access",
+    description: "Campus credentials keep your workspace protected and personalized.",
+  },
+  {
+    emoji: "⚡",
+    title: "Faster coordination",
+    description: "Bookings, approvals, and support requests stay connected across teams.",
+  },
+  {
+    emoji: "📍",
+    title: "Clear visibility",
+    description: "Important updates are easier to find the moment you sign in.",
+  },
 ];
 
-const platformMoments = [
-  {
-    title: "Reserve spaces",
-    description: "Handle halls, labs, and classrooms from a single booking flow.",
-  },
-  {
-    title: "Monitor requests",
-    description: "See approvals, ticket activity, and operational updates in context.",
-  },
-  {
-    title: "Support your team",
-    description: "Give admins and maintenance staff one coordinated place to work.",
-  },
+const heroChecklist = [
+  "Professional sign-in for campus operations",
+  "Organized tools for daily facility work",
+  "A calmer first step into your dashboard",
 ];
 
 export default function ALoginView({
@@ -63,114 +69,107 @@ export default function ALoginView({
     <main className="dashboard-shell">
       <div className="abstract-bg" />
       <div className="dashboard-wrap portal-container">
-        <header className="hero-banner admin-hero-v3 login-hero-v4">
-          <div className="hero-content login-hero-content">
-            <span className="hero-tag">Staff &amp; Admin Portal</span>
-            <h1>Welcome back to your facilities hub</h1>
+        <header className="hero-banner admin-hero-v3 login-hero-v5">
+          <div className="hero-content login-hero-copy-v5">
+            <span className="hero-tag">🏢 Smart Campus Operations</span>
+            <h1>Sign in to a campus workspace that feels professional and organized</h1>
             <p>
-              Manage hall bookings, monitor maintenance tickets, and keep campus
-              operations moving from one calm, connected workspace.
+              Access bookings, maintenance updates, and administrative tools from
+              one clear system designed to help your team work with less clutter
+              and more confidence.
             </p>
-            <div className="hero-signal-strip">
-              <span className="hero-signal-pill">Room reservations</span>
-              <span className="hero-signal-pill">Maintenance tracking</span>
-              <span className="hero-signal-pill">Admin approvals</span>
+
+            <div className="login-hero-chip-row">
+              {heroSignals.map((item) => (
+                <span key={item} className="login-hero-chip">
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
 
-          <aside className="hero-focus-card">
-            <span className="hero-focus-kicker">Built for daily campus operations</span>
-            <strong>One sign-in opens the tools your role needs most.</strong>
+          <aside className="login-hero-panel">
+            <span className="login-hero-panel-kicker">✨ First impressions matter</span>
+            <strong>Your login should feel like the entrance to a real professional system.</strong>
             <p>
-              Staff, administrators, and maintenance teams can each move through
-              requests faster with cleaner visibility and fewer handoff delays.
+              This portal is built to help users move quickly, understand what is
+              available, and trust the tools waiting behind their sign-in.
             </p>
-            <div className="hero-focus-metrics">
-              <div>
-                <span>Bookings</span>
-                <strong>Centralized</strong>
-              </div>
-              <div>
-                <span>Updates</span>
-                <strong>Clear</strong>
-              </div>
+
+            <div className="login-hero-checklist">
+              {heroChecklist.map((item) => (
+                <div key={item} className="login-hero-check-item">
+                  <span>✔</span>
+                  <p>{item}</p>
+                </div>
+              ))}
             </div>
           </aside>
         </header>
 
-        <section className="auth-layout-v3">
-          <div className="auth-info-v3">
-            <div className="section-header">
-              <span className="panel-kicker">Campus Operations</span>
-              <h2>Everything your team needs in one place</h2>
+        <section className="auth-layout-v3 login-layout-v5">
+          <div className="login-overview-pane">
+            <article className="login-overview-card login-overview-intro">
+              <span className="panel-kicker">Why This Login Page Works</span>
+              <h2>Everything is arranged to feel clean, trustworthy, and easy to understand</h2>
               <p>
-                This website helps staff manage bookings, approvals, and
-                maintenance activity with a cleaner experience that is easy to
-                return to every day.
+                Instead of showing many disconnected sections, this page guides
+                users through a simple story: what the website is, what they can
+                do after signing in, and why this portal is valuable for campus
+                work every day.
               </p>
-            </div>
+            </article>
 
-            <div className="auth-story-card">
-              <span className="auth-story-kicker">Why teams choose this portal</span>
-              <strong>
-                From lecture hall scheduling to maintenance follow-up, each step
-                stays visible, practical, and easier to manage.
-              </strong>
-              <p>
-                The experience is designed to reduce confusion, keep requests
-                moving, and give every campus team a shared view of what needs
-                attention next.
-              </p>
-            </div>
+            <article className="login-overview-card login-benefit-board">
+              <div className="login-board-header">
+                <span className="panel-kicker">What Awaits Inside</span>
+                <h3>A clearer dashboard starts with a clearer login experience</h3>
+                <p>
+                  After sign-in, users can move directly into the work that matters
+                  without confusion or unnecessary steps.
+                </p>
+              </div>
 
-            <div className="auth-feature-grid">
-              {loginHighlights.map((item) => (
-                <article key={item.title} className="auth-feature-v3">
-                  <div className="icon">{item.icon}</div>
-                  <div className="auth-feature-copy">
-                    <span>{item.eyebrow}</span>
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                  </div>
+              <div className="login-benefit-list">
+                {loginBenefits.map((item) => (
+                  <article key={item.title} className="login-benefit-item">
+                    <div className="login-benefit-icon">{item.emoji}</div>
+                    <div className="login-benefit-copy">
+                      <strong>{item.title}</strong>
+                      <p>{item.description}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+
+            <div className="login-trust-grid">
+              {trustNotes.map((item) => (
+                <article key={item.title} className="login-trust-card">
+                  <span className="login-trust-emoji">{item.emoji}</span>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
                 </article>
               ))}
             </div>
-
-            <div className="auth-metric-grid">
-              {platformStats.map((item) => (
-                <div key={item.label} className="stat-card-v3 auth-metric-card">
-                  <strong>{item.value}</strong>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="auth-workflow-card">
-              <span className="auth-workflow-kicker">What you can do here</span>
-              <div className="auth-workflow-list">
-                {platformMoments.map((item) => (
-                  <div key={item.title} className="auth-workflow-item">
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
-          <div className="auth-card-v3 auth-card-shell animate-fade-in">
-            <div className="form-header auth-form-header">
-              <span className="panel-kicker">Protected Access</span>
+          <div className="auth-card-v3 auth-card-shell login-form-card-v5 animate-fade-in">
+            <div className="form-header auth-form-header login-form-header-v5">
+              <span className="panel-kicker">🔐 Protected Access</span>
               <h3>Secure Login</h3>
               <p>
-                Sign in with your campus account to continue to bookings,
-                approvals, and maintenance tools.
+                Sign in with your campus email and password to continue to your
+                personalized dashboard.
               </p>
             </div>
 
-            <div className="auth-card-note">
-              Your dashboard adapts to your role so the most relevant tools are
-              ready as soon as you enter.
+            <div className="login-form-note">
+              <strong>Professional access, ready in seconds.</strong>
+              <p>
+                Your role determines the tools you see next, helping you enter a
+                dashboard that already feels relevant and organized.
+              </p>
             </div>
 
             <form className="modern-form-wrap" onSubmit={handleLoginSubmit}>
@@ -243,10 +242,16 @@ export default function ALoginView({
                 </button>
               </div>
 
-              <p className="form-note">
-                New here? Create an account to start managing facilities,
-                reservations, and support requests with your team.
-              </p>
+              <div className="login-form-assurance">
+                <div className="login-form-assurance-item">
+                  <span>🪪</span>
+                  <p>Use your campus email for direct access to your workspace.</p>
+                </div>
+                <div className="login-form-assurance-item">
+                  <span>🚀</span>
+                  <p>Designed to help users reach the right tools faster.</p>
+                </div>
+              </div>
             </form>
           </div>
         </section>
