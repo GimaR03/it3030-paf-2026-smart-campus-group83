@@ -20,8 +20,14 @@ export function useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDa
   const [registerForm, setRegisterForm] = useState({
     fullName: "",
     email: "",
+    phoneNumber: "",
+    idNumber: "",
+    affiliation: "",
+    department: "",
     password: "",
     confirmPassword: "",
+    role: "USER",
+    dateOfBirth: "",
   });
   const [createAdminForm, setCreateAdminForm] = useState({
     fullName: "",
@@ -108,15 +114,38 @@ export function useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDa
       setErrorMessage("Passwords do not match.");
       return;
     }
+
+    if (!/^\d{10}$/.test(registerForm.phoneNumber.trim())) {
+      setErrorMessage("Phone number must be exactly 10 digits.");
+      return;
+    }
+
     try {
       await registerUser({
         fullName: registerForm.fullName,
         email: registerForm.email,
+        phoneNumber: registerForm.phoneNumber,
+        idNumber: registerForm.idNumber,
+        affiliation: registerForm.affiliation,
+        department: registerForm.department,
         password: registerForm.password,
+        role: registerForm.role || "USER",
+        dateOfBirth: registerForm.dateOfBirth,
       });
       setSuccessMessage("Account created. Please login.");
       setCurrentDashboard("login");
-      setRegisterForm({ fullName: "", email: "", password: "", confirmPassword: "" });
+      setRegisterForm({
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        idNumber: "",
+        affiliation: "",
+        department: "",
+        password: "",
+        confirmPassword: "",
+        role: "USER",
+        dateOfBirth: "",
+      });
     } catch (error) {
       setErrorMessage(error.message);
     }

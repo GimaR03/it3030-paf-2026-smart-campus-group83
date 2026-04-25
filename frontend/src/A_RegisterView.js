@@ -1,11 +1,5 @@
 import { useState } from "react";
 
-const checklist = [
-  "Use a @my.sliit.lk email address",
-  "Password must be at least 6 characters",
-  "Admin and maintenance accounts are managed separately",
-];
-
 export default function ARegisterView({
   clearMessages,
   setCurrentDashboard,
@@ -75,6 +69,7 @@ export default function ARegisterView({
               <label className="modern-label">
                 Full Name
                 <input
+                  required
                   className="modern-input"
                   value={registerForm.fullName}
                   onChange={(event) => setRegisterForm((current) => ({ ...current, fullName: event.target.value }))}
@@ -93,6 +88,86 @@ export default function ARegisterView({
                   placeholder="e.g. user@my.sliit.lk"
                 />
               </label>
+
+              <div className="form-grid-2">
+                <label className="modern-label">
+                  Phone Number
+                  <input
+                    required
+                    type="tel"
+                    className="modern-input"
+                    value={registerForm.phoneNumber}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, phoneNumber: event.target.value }))}
+                    placeholder="e.g. 0771234567"
+                    maxLength={10}
+                  />
+                </label>
+
+                <label className="modern-label">
+                  ID Number
+                  <input
+                    required
+                    className="modern-input"
+                    value={registerForm.idNumber}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, idNumber: event.target.value }))}
+                    placeholder="e.g. 200012345678"
+                    maxLength={15}
+                  />
+                </label>
+              </div>
+
+              <div className="form-grid-2">
+                <label className="modern-label">
+                  Affiliation
+                  <select
+                    required
+                    className="modern-input"
+                    value={registerForm.affiliation}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, affiliation: event.target.value }))}
+                  >
+                    <option value="">Select affiliation</option>
+                    <option value="Academic Staff">Academic Staff</option>
+                    <option value="Non Academic Staff">Non Academic Staff</option>
+                  </select>
+                </label>
+
+                <label className="modern-label">
+                  Department
+                  <input
+                    required
+                    className="modern-input"
+                    value={registerForm.department}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, department: event.target.value }))}
+                    placeholder="e.g. Computing"
+                    maxLength={120}
+                  />
+                </label>
+              </div>
+
+              <div className="form-grid-2">
+                <label className="modern-label">
+                  Role
+                  <select
+                    required
+                    className="modern-input"
+                    value={registerForm.role}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, role: event.target.value }))}
+                  >
+                    <option value="USER">USER</option>
+                  </select>
+                </label>
+
+                <label className="modern-label">
+                  Date of Birth
+                  <input
+                    required
+                    type="date"
+                    className="modern-input"
+                    value={registerForm.dateOfBirth}
+                    onChange={(event) => setRegisterForm((current) => ({ ...current, dateOfBirth: event.target.value }))}
+                  />
+                </label>
+              </div>
 
               <div className="form-grid-2">
                 <label className="modern-label">

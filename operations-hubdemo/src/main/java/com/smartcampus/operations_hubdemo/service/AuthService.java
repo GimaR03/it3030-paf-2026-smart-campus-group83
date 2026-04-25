@@ -44,6 +44,8 @@ public class AuthService {
     public AuthUserResponse register(RegisterRequest request) {
         String email = normalizeCampusEmail(request.email());
         ensureAllowedCampusEmail(email);
+        String phoneNumber = normalizeValue(request.phoneNumber());
+        String idNumber = normalizeValue(request.idNumber());
 
         if (isReservedSystemEmail(email)) {
             throw new ResponseStatusException(
@@ -56,7 +58,26 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already registered. Please login.");
         }
 
-        CampusUser user = buildUser(email, request.fullName(), request.password(), ROLE_USER);
+        if (campusUserRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number already registered. Please use another one.");
+        }
+
+        if (campusUserRepository.existsByIdNumber(idNumber)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID number already registered. Please use another one.");
+        }
+
+        String role = resolveRegistrationRole(request.role());
+        CampusUser user = buildUser(
+                email,
+                request.fullName(),
+                request.password(),
+                role,
+                phoneNumber,
+                idNumber,
+                request.dateOfBirth(),
+                request.affiliation(),
+                request.department()
+        );
         return toResponse(campusUserRepository.save(user));
     }
 
@@ -80,7 +101,17 @@ public class AuthService {
         CampusUser user = campusUserRepository.findByEmail(email)
                 .map(this::syncRole)
                 .orElseGet(() -> campusUserRepository.save(
-                        buildUser(email, request.fullName(), UUID.randomUUID().toString(), reservedOrDefaultRole(email))
+                buildUser(
+                    email,
+                    request.fullName(),
+                    UUID.randomUUID().toString(),
+                    reservedOrDefaultRole(email),
+                    generateUniquePhoneNumber(),
+                    generateUniqueIdNumber(),
+                    DEFAULT_DATE_OF_BIRTH,
+                    DEFAULT_AFFILIATION,
+                    DEFAULT_DEPARTMENT
+                )
                 ));
 
         return toResponse(user);
@@ -102,7 +133,17 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists.");
         }
 
-        CampusUser admin = buildUser(email, request.fullName(), request.password(), ROLE_ADMIN);
+        CampusUser admin = buildUser(
+            email,
+            request.fullName(),
+            request.password(),
+            ROLE_ADMIN,
+            generateUniquePhoneNumber(),
+            generateUniqueIdNumber(),
+            DEFAULT_DATE_OF_BIRTH,
+            DEFAULT_AFFILIATION,
+            DEFAULT_DEPARTMENT
+        );
         return toResponse(campusUserRepository.save(admin));
     }
 
@@ -122,7 +163,17 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists.");
         }
 
-        CampusUser maintenance = buildUser(email, request.fullName(), request.password(), ROLE_MAINTENANCE);
+        CampusUser maintenance = buildUser(
+            email,
+            request.fullName(),
+            request.password(),
+            ROLE_MAINTENANCE,
+            generateUniquePhoneNumber(),
+            generateUniqueIdNumber(),
+            DEFAULT_DATE_OF_BIRTH,
+            DEFAULT_AFFILIATION,
+            DEFAULT_DEPARTMENT
+        );
         return toResponse(campusUserRepository.save(maintenance));
     }
 
@@ -176,7 +227,17 @@ public class AuthService {
 
     private void ensureAccount(String email, String fullName, String rawPassword, String role) {
         CampusUser user = campusUserRepository.findByEmail(email)
-                .orElseGet(() -> buildUser(email, fullName, rawPassword, role));
+            .orElseGet(() -> buildUser(
+                email,
+                fullName,
+                rawPassword,
+                role,
+                generateUniquePhoneNumber(),
+                generateUniqueIdNumber(),
+                DEFAULT_DATE_OF_BIRTH,
+                DEFAULT_AFFILIATION,
+                DEFAULT_DEPARTMENT
+            ));
 
         boolean changed = false;
         if (!matchesPassword(rawPassword, user)) {
@@ -218,18 +279,42 @@ public class AuthService {
         }
     }
 
-    private CampusUser buildUser(String email, String requestedFullName, String rawPassword, String role) {
+    private CampusUser buildUser(
+            String email,
+            String requestedFullName,
+            String rawPassword,
+            String role,
+            String phoneNumber,
+            String idNumber,
+            LocalDate dateOfBirth,
+            String affiliation,
+            String department
+    ) {
         CampusUser user = new CampusUser();
         user.setEmail(email);
         user.setFullName(resolveDisplayName(requestedFullName, email));
-        user.setPhoneNumber(generateUniquePhoneNumber());
-        user.setIdNumber(generateUniqueIdNumber());
-        user.setDateOfBirth(DEFAULT_DATE_OF_BIRTH);
-        user.setAffiliation(DEFAULT_AFFILIATION);
-        user.setDepartment(DEFAULT_DEPARTMENT);
+        user.setPhoneNumber(normalizeValue(phoneNumber));
+        user.setIdNumber(normalizeValue(idNumber));
+        user.setDateOfBirth(dateOfBirth);
+        user.setAffiliation(normalizeValue(affiliation));
+        user.setDepartment(normalizeValue(department));
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
         return user;
+    }
+
+    private String resolveRegistrationRole(String role) {
+        String normalizedRole = normalizeValue(role).toUpperCase(Locale.ROOT);
+        if (normalizedRole.isBlank()) {
+            return ROLE_USER;
+        }
+        if (!ROLE_USER.equals(normalizedRole)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Public registration only supports USER role. Admin and maintenance roles are created by admins."
+            );
+        }
+        return normalizedRole;
     }
 
     private CampusUser syncRole(CampusUser user) {
@@ -309,6 +394,10 @@ public class AuthService {
 
     private String normalizeCampusEmail(String email) {
         return String.valueOf(email).trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeValue(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private String resolveDisplayName(String requestedFullName, String email) {
