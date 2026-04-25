@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import NotificationPanel from "./NotificationPanel";
 
 export default function ABookRoomView({
   clearMessages,
@@ -31,7 +32,9 @@ export default function ABookRoomView({
   handleCancelMyBooking,
   rooms,
   bookNotifications,
+  bookUnreadCount,
   clearBookNotifications,
+  markBookNotificationsRead,
   authUser,
 }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -160,7 +163,7 @@ export default function ABookRoomView({
                 className="tiny-btn"
                 onClick={() => setShowNotifications((current) => !current)}
               >
-                Notifications ({bookNotifications.length})
+                Notifications ({bookUnreadCount})
               </button>
               <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
                 🚪 Logout
@@ -216,64 +219,15 @@ export default function ABookRoomView({
             </button>
           </div>
 
-          {bookNotifications.length > 0 && (
-            <article className="glass-panel booking-notice-panel">
-              <div className="panel-header-actions">
-                <h2>Notification Bar</h2>
-                <button
-                  type="button"
-                  className="tiny-btn booking-btn booking-btn-ghost"
-                  onClick={clearBookNotifications}
-                >
-                  Clear
-                </button>
-              </div>
-              <ul className="ticket-images booking-notification-list">
-                {bookNotifications.slice(0, 5).map((notice) => (
-                  <li key={notice.id}>
-                    <strong>{notice.message}</strong>
-                    <div>
-                      {notice.building ? `Building: ${notice.building}` : ""}
-                      {notice.floor ? ` | Floor: ${notice.floor}` : ""}
-                      {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
-                    </div>
-                    {notice.timestamp && <small>{notice.timestamp}</small>}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          )}
-
           {showNotifications && (
-            <article className="glass-panel booking-notice-panel">
-              <div className="panel-header-actions">
-                <h2>Book Notifications</h2>
-                <button
-                  type="button"
-                  className="tiny-btn booking-btn booking-btn-ghost"
-                  onClick={clearBookNotifications}
-                >
-                  Clear
-                </button>
-              </div>
-              {bookNotifications.length === 0 ? (
-                <p className="empty">No notifications yet.</p>
-              ) : (
-                <ul className="ticket-images booking-notification-list">
-                  {bookNotifications.map((notice) => (
-                    <li key={notice.id}>
-                      <strong>{notice.message}</strong>
-                      <div>
-                        {notice.building ? `Building: ${notice.building}` : ""}
-                        {notice.floor ? ` | Floor: ${notice.floor}` : ""}
-                        {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
-                      </div>
-                      {notice.timestamp && <small>{notice.timestamp}</small>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
+            <NotificationPanel
+              title="Booking Notifications"
+              kicker="Approval Updates"
+              notifications={bookNotifications}
+              emptyText="No booking updates yet."
+              onMarkAllRead={markBookNotificationsRead}
+              onClearAll={clearBookNotifications}
+            />
           )}
 
         <div className="book-room-container">

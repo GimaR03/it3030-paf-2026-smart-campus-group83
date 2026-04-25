@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import "./App.css";
 import {
@@ -20,6 +20,11 @@ import AMaintenanceView from "./A_MaintenanceView";
 import AAdminDashboardView from "./A_AdminDashboardView";
 import ATicketFormView from "./ATicketFormView";
 import ATicketHistoryView from "./ATicketHistoryView";
+import {
+  clearNotificationsForUser,
+  getNotificationsForUser,
+  markNotificationsAsRead,
+} from "./notificationUtils";
 import { useCampusResources } from "./hooks/useCampusResources";
 import { useCampusAuth } from "./hooks/useCampusAuth";
 import { useCampusBookings } from "./hooks/useCampusBookings";
@@ -50,6 +55,11 @@ function App() {
     setSuccessMessage("");
   };
 
+  const addSystemNotification = (notification) => {
+    if (!notification) return;
+    setSystemNotifications((prev) => [notification, ...prev].slice(0, 250));
+  };
+
   // 1. Auth Hook
   const auth = useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDashboard, clearMessages });
   const { authUser } = auth;
@@ -66,12 +76,70 @@ function App() {
     clearMessages, 
     systemNotifications, 
     setSystemNotifications,
+    addSystemNotification,
     buildings,
     rooms
   });
 
   // 4. Tickets Hook
-  const tickets = useCampusTickets({ setErrorMessage, setSuccessMessage, clearMessages, setCurrentDashboard, authUser });
+  const tickets = useCampusTickets({
+    setErrorMessage,
+    setSuccessMessage,
+    clearMessages,
+    setCurrentDashboard,
+    authUser,
+    addSystemNotification,
+  });
+
+  const currentUserNotifications = useMemo(
+    () => getNotificationsForUser(systemNotifications, authUser?.userId),
+    [systemNotifications, authUser]
+  );
+
+  const ticketNotifications = useMemo(
+    () =>
+      currentUserNotifications.filter(
+        (notification) =>
+          notification.category === "TICKET" &&
+          notification.type !== "TICKET_ASSIGNED"
+      ),
+    [currentUserNotifications]
+  );
+
+  const assignmentNotifications = useMemo(
+    () =>
+      currentUserNotifications.filter(
+        (notification) => notification.type === "TICKET_ASSIGNED"
+      ),
+    [currentUserNotifications]
+  );
+
+  const unreadNotificationsCount = useMemo(
+    () => currentUserNotifications.filter((notification) => !notification.read).length,
+    [currentUserNotifications]
+  );
+
+  const unreadTicketNotificationsCount = useMemo(
+    () => ticketNotifications.filter((notification) => !notification.read).length,
+    [ticketNotifications]
+  );
+
+  const unreadAssignmentNotificationsCount = useMemo(
+    () => assignmentNotifications.filter((notification) => !notification.read).length,
+    [assignmentNotifications]
+  );
+
+  const markCurrentUserNotificationsRead = (predicate = () => true) => {
+    setSystemNotifications((prev) =>
+      markNotificationsAsRead(prev, authUser?.userId, predicate)
+    );
+  };
+
+  const clearCurrentUserNotifications = (predicate = () => true) => {
+    setSystemNotifications((prev) =>
+      clearNotificationsForUser(prev, authUser?.userId, predicate)
+    );
+  };
 
   useEffect(() => {
     window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(systemNotifications));
@@ -178,6 +246,10 @@ function App() {
         ticketsCount={tickets.tickets.length}
         authUser={authUser}
         handleLogout={auth.handleLogout}
+        notifications={currentUserNotifications}
+        unreadNotificationsCount={unreadNotificationsCount}
+        markNotificationsRead={() => markCurrentUserNotificationsRead()}
+        clearNotifications={() => clearCurrentUserNotifications()}
       />
     );
   }
@@ -238,6 +310,19 @@ function App() {
         authUser={authUser}
         formatLabel={formatLabel}
         getTicketBuildingLabel={getTicketBuildingLabel}
+        notifications={assignmentNotifications}
+        unreadNotificationsCount={unreadAssignmentNotificationsCount}
+        markNotificationsRead={() =>
+          markCurrentUserNotificationsRead(
+            (notification) => notification.type === "TICKET_ASSIGNED"
+          )
+        }
+        clearNotifications={() =>
+          clearCurrentUserNotifications(
+            (notification) => notification.type === "TICKET_ASSIGNED"
+          )
+        }
+        addSystemNotification={addSystemNotification}
       />
     );
   }
@@ -257,6 +342,23 @@ function App() {
         handleLogout={auth.handleLogout}
         errorMessage={errorMessage}
         successMessage={successMessage}
+        notifications={ticketNotifications}
+        unreadNotificationsCount={unreadTicketNotificationsCount}
+        markNotificationsRead={() =>
+          markCurrentUserNotificationsRead(
+            (notification) =>
+              notification.category === "TICKET" &&
+              notification.type !== "TICKET_ASSIGNED"
+          )
+        }
+        clearNotifications={() =>
+          clearCurrentUserNotifications(
+            (notification) =>
+              notification.category === "TICKET" &&
+              notification.type !== "TICKET_ASSIGNED"
+          )
+        }
+        addSystemNotification={addSystemNotification}
       />
     );
   }
@@ -273,6 +375,22 @@ function App() {
         errorMessage={errorMessage}
         successMessage={successMessage}
         handleDownloadTicketPdf={handleDownloadTicketPdf}
+        notifications={ticketNotifications}
+        unreadNotificationsCount={unreadTicketNotificationsCount}
+        markNotificationsRead={() =>
+          markCurrentUserNotificationsRead(
+            (notification) =>
+              notification.category === "TICKET" &&
+              notification.type !== "TICKET_ASSIGNED"
+          )
+        }
+        clearNotifications={() =>
+          clearCurrentUserNotifications(
+            (notification) =>
+              notification.category === "TICKET" &&
+              notification.type !== "TICKET_ASSIGNED"
+          )
+        }
       />
     );
   }

@@ -8,6 +8,12 @@ import {
   rejectBooking,
 } from "../api/campusApi";
 import { getCurrentDateTimeValue } from "../A_helpers";
+import {
+  clearNotificationsForUser,
+  createNotification,
+  getNotificationsForUser,
+  markNotificationsAsRead,
+} from "../notificationUtils";
 
 export function useCampusBookings({ 
   setErrorMessage, 
@@ -16,6 +22,7 @@ export function useCampusBookings({
   clearMessages, 
   systemNotifications, 
   setSystemNotifications,
+  addSystemNotification,
   buildings = [],
   rooms = []
 }) {
@@ -118,6 +125,17 @@ export function useCampusBookings({
         role: authUser.role 
       });
       setSuccessMessage(`Booking #${booking.id} approved.`);
+      addSystemNotification(
+        createNotification({
+          type: "BOOKING_APPROVED",
+          category: "BOOKING",
+          recipientUserId: booking.requestedByUserId,
+          title: `Booking #${booking.id} approved`,
+          message: reason
+            ? `Your booking request for resource ${booking.resourceId} on ${booking.date} was approved. Note: ${reason}`
+            : `Your booking request for resource ${booking.resourceId} on ${booking.date} was approved.`,
+        })
+      );
       loadAdminBookings();
     } catch (error) {
       setErrorMessage(error.message);
@@ -133,6 +151,17 @@ export function useCampusBookings({
         role: authUser.role 
       });
       setSuccessMessage(`Booking #${booking.id} rejected.`);
+      addSystemNotification(
+        createNotification({
+          type: "BOOKING_REJECTED",
+          category: "BOOKING",
+          recipientUserId: booking.requestedByUserId,
+          title: `Booking #${booking.id} rejected`,
+          message: reason
+            ? `Your booking request for resource ${booking.resourceId} on ${booking.date} was rejected. Reason: ${reason}`
+            : `Your booking request for resource ${booking.resourceId} on ${booking.date} was rejected.`,
+        })
+      );
       loadAdminBookings();
     } catch (error) {
       setErrorMessage(error.message);
@@ -140,8 +169,13 @@ export function useCampusBookings({
   };
 
   const bookNotifications = useMemo(
-    () => systemNotifications.filter((n) => n.target === "BOOK"),
-    [systemNotifications]
+    () =>
+      getNotificationsForUser(
+        systemNotifications,
+        authUser?.userId,
+        (notification) => notification.category === "BOOKING"
+      ),
+    [systemNotifications, authUser]
   );
 
   const adminNotifications = useMemo(
@@ -149,8 +183,29 @@ export function useCampusBookings({
     [systemNotifications]
   );
 
+  const bookUnreadCount = useMemo(
+    () => bookNotifications.filter((notification) => !notification.read).length,
+    [bookNotifications]
+  );
+
   const clearBookNotifications = () => {
-    setSystemNotifications((prev) => prev.filter((n) => n.target !== "BOOK"));
+    setSystemNotifications((prev) =>
+      clearNotificationsForUser(
+        prev,
+        authUser?.userId,
+        (notification) => notification.category === "BOOKING"
+      )
+    );
+  };
+
+  const markBookNotificationsRead = () => {
+    setSystemNotifications((prev) =>
+      markNotificationsAsRead(
+        prev,
+        authUser?.userId,
+        (notification) => notification.category === "BOOKING"
+      )
+    );
   };
 
   const clearAdminNotifications = () => {
@@ -200,8 +255,10 @@ export function useCampusBookings({
     handleAdminApprove,
     handleAdminReject,
     bookNotifications,
+    bookUnreadCount,
     adminNotifications,
     clearBookNotifications,
+    markBookNotificationsRead,
     clearAdminNotifications,
     bookRoomSelectedBuildingId,
     setBookRoomSelectedBuildingId,

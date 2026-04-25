@@ -1,3 +1,6 @@
+import { useState } from "react";
+import NotificationPanel from "./NotificationPanel";
+
 export default function APortalView({
   portalActions,
   handlePortalAction,
@@ -7,7 +10,13 @@ export default function APortalView({
   ticketsCount = 0,
   authUser,
   handleLogout,
+  notifications,
+  unreadNotificationsCount,
+  markNotificationsRead,
+  clearNotifications,
 }) {
+  const [showNotifications, setShowNotifications] = useState(false);
+
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
@@ -23,29 +32,48 @@ export default function APortalView({
             </div>
           </div>
           {authUser && (
-            <button 
-              type="button" 
-              className="logout-nav-btn" 
-              onClick={handleLogout}
-            >
-              <span className="btn-icon">🚪</span>
-              <span className="btn-text">Logout</span>
-            </button>
+            <div className="hero-actions">
+              <button
+                type="button"
+                className="tiny-btn"
+                onClick={() => setShowNotifications((current) => !current)}
+              >
+                Notifications ({unreadNotificationsCount})
+              </button>
+              <button
+                type="button"
+                className="logout-nav-btn"
+                onClick={handleLogout}
+              >
+                <span className="btn-icon">Logout</span>
+                <span className="btn-text">Logout</span>
+              </button>
+            </div>
           )}
         </div>
 
+        {showNotifications && (
+          <NotificationPanel
+            title="Your Notifications"
+            kicker="Notification Center"
+            notifications={notifications}
+            emptyText="No notifications yet."
+            onMarkAllRead={markNotificationsRead}
+            onClearAll={clearNotifications}
+          />
+        )}
+
         <header className="hero-banner portal-hero-v2">
           <div className="hero-content">
-            <span className="hero-tag">✦ Smart Campus Ecosystem</span>
+            <span className="hero-tag">Smart Campus Ecosystem</span>
             <h1>Intelligence & Facilities Hub</h1>
             <p>
-              Experience the future of campus management. Streamline your day by 
-              managing resources, reporting issues, and accessing administrative 
-              power—all from one unified interface.
+              Experience the future of campus management. Streamline your day by
+              managing resources, reporting issues, and accessing administrative
+              tools from one unified interface.
             </p>
           </div>
           <div className="hero-visual">
-            {/* Visual element or decorative illustration placeholder */}
             <div className="pulsing-orb" />
           </div>
         </header>
@@ -102,7 +130,10 @@ export default function APortalView({
           <div className="footer-glass">
             <div className="info-block">
               <span className="info-icon">💡</span>
-              <p><strong>Pro Tip:</strong> Use the Admin Panel to update building layouts in real-time.</p>
+              <p>
+                <strong>Pro Tip:</strong> Open the notification center anytime to
+                review booking decisions, ticket updates, and comments.
+              </p>
             </div>
             <div className="info-block">
               <span className="info-icon">🛡️</span>
@@ -120,4 +151,3 @@ export default function APortalView({
     </main>
   );
 }
-
