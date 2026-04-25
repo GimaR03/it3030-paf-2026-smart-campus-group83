@@ -315,6 +315,7 @@ export default function AMaintenanceView({
                         )}
                       </div>
 
+<<<<<<< HEAD
                       <div
                         className="ticket-card-footer-modern"
                         style={{
@@ -342,6 +343,18 @@ export default function AMaintenanceView({
                             addSystemNotification={addSystemNotification}
                           />
                         </div>
+=======
+                      <div className="ticket-card-footer-modern" style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.8rem' }}>
+                         <span className="reported-date">🕒 {ticket.createdDate?.replace("T", " ")}</span>
+                         <div style={{ marginTop: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '0.5rem' }}>
+                           <ATicketComments 
+                              ticketId={ticket.id} 
+                              authUser={authUser} 
+                              ticketCreatorId={ticket.creatorId}
+                              ticketTitle={ticket.title}
+                           />
+                         </div>
+>>>>>>> 7739b8ef9e5669723df5b8f97710a05470f4cde0
                       </div>
                     </div>
                   </article>

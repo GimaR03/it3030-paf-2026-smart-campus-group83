@@ -40,10 +40,7 @@ public class TicketController {
             return ticketService.getTickets();
         }
         if ("MAINTENANCE".equalsIgnoreCase(role)) {
-            if (headerUserId != null) {
-                return ticketService.getTicketsByAssignedMaintenanceId(headerUserId);
-            }
-            return List.of();
+            return ticketService.getTickets();
         }
         if (headerUserId != null) {
             return ticketService.getTicketsByCreatorId(headerUserId);
@@ -86,9 +83,9 @@ public class TicketController {
         boolean isCreator = headerUserId.equals(ticket.getCreatorId());
         boolean isAssigned = headerUserId.equals(ticket.getAssignedMaintenanceId());
 
-        if (!isAdmin && !isCreator && !(isMaintenance && isAssigned)) {
+        if (!isAdmin && !isCreator && !isMaintenance) {
             throw new org.springframework.web.server.ResponseStatusException(
-                HttpStatus.FORBIDDEN, "You can only comment on your own tickets or tickets assigned to you");
+                HttpStatus.FORBIDDEN, "Access denied. You must be an admin, the creator, or maintenance staff to comment.");
         }
         return ticketService.addComment(ticketId, headerUserId, request.getContent());
     }
