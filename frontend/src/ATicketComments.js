@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { getTicketComments, addTicketComment } from "./api/campusApi";
+import { dispatchTicketNotification } from "./ticketNotifications";
 
-export default function ATicketComments({ ticketId, authUser }) {
+export default function ATicketComments({ ticketId, authUser, ticketCreatorId, ticketTitle }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,6 +34,17 @@ export default function ATicketComments({ ticketId, authUser }) {
       });
       setComments((prev) => [...prev, added]);
       setNewComment("");
+
+      // If the commenter is NOT the creator, notify the creator
+      if (authUser?.userId !== ticketCreatorId && ticketCreatorId && ticketTitle) {
+        dispatchTicketNotification({
+          type: "NEW_COMMENT",
+          ticketId,
+          ticketTitle,
+          creatorId: ticketCreatorId,
+          message: `💬 ${authUser?.fullName || "Staff"} added a comment to your ticket "${ticketTitle}".`,
+        });
+      }
     } catch (err) {
       setError(err.message);
     }

@@ -213,7 +213,12 @@ export default function ATicketHistoryView({
                           </button>
                         </div>
                       </div>
-                      <ATicketComments ticketId={ticket.id} authUser={authUser} />
+                      <ATicketComments 
+                        ticketId={ticket.id} 
+                        authUser={authUser} 
+                        ticketCreatorId={ticket.creatorId}
+                        ticketTitle={ticket.title}
+                      />
                     </div>
                   </article>
                 ))}
