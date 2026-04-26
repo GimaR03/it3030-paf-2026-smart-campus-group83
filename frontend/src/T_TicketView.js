@@ -46,18 +46,21 @@ export default function T_TicketView({
       <div className="abstract-bg" />
       <div className="dashboard-wrap">
         <header className="hero-banner portal-hero">
-          <div className="hero-head-row">
+          <div className="hero-head-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '20px' }}>
             <span className="hero-tag">Smart Campus Access</span>
-            <button
-              type="button"
-              className="tiny-btn hero-back"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard(isHistoryPage ? "ticket" : "portal");
-              }}
-            >
-              {isHistoryPage ? "Back To Ticket Page" : "Back To Portal"}
-            </button>
+            <div className="v6-nav-actions" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '6px', backdropFilter: 'none' }}>
+              <button
+                type="button"
+                className="v6-action-pill primary"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard(isHistoryPage ? "ticket" : "portal");
+                }}
+              >
+                <span className="pill-icon">{isHistoryPage ? "🎫" : "🧭"}</span>
+                <span className="pill-text">{isHistoryPage ? "Back To Tickets" : "Back To Portal"}</span>
+              </button>
+            </div>
           </div>
           <h1>{isHistoryPage ? "My Ticket History" : "Ticket Page"}</h1>
           <p>
@@ -119,20 +122,22 @@ export default function T_TicketView({
                         </span>
                         <span>{ticket.createdDate.replace("T", " ")}</span>
                       </div>
-                      <div className="ticket-card-actions">
+                      <div className="ticket-card-actions" style={{ display: 'flex', gap: '8px', marginTop: '15px' }}>
                         <button
                           type="button"
-                          className="tiny-btn"
+                          className="v6-action-pill"
                           onClick={() => handleStartTicketEdit(ticket)}
                         >
-                          Edit
+                          <span className="pill-icon">✏️</span>
+                          <span className="pill-text">Edit</span>
                         </button>
                         <button
                           type="button"
-                          className="tiny-btn danger"
+                          className="v6-action-pill danger"
                           onClick={() => handleDeleteTicket(ticket.id)}
                         >
-                          Delete
+                          <span className="pill-icon">🗑️</span>
+                          <span className="pill-text">Delete</span>
                         </button>
                       </div>
                     </article>
@@ -143,17 +148,18 @@ export default function T_TicketView({
           ) : (
             <div className="workspace-grid two-up">
               <form className="glass-panel" onSubmit={handleCreateTicket}>
-                <div className="panel-header-actions">
+                <div className="panel-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h2>{editingTicketId ? "Update Ticket" : "Create Ticket"}</h2>
                   <button
                     type="button"
-                    className="tiny-btn"
+                    className="v6-action-pill"
                     onClick={() => {
                       clearMessages();
                       setCurrentDashboard("ticket-history");
                     }}
                   >
-                    My Ticket History
+                    <span className="pill-icon">📋</span>
+                    <span className="pill-text">My Ticket History</span>
                   </button>
                 </div>
                 <div className="ticket-field-grid">
@@ -334,15 +340,20 @@ export default function T_TicketView({
                     </small>
                   </label>
                 </div>
-                <div className="ticket-form-actions">
-                  <button type="submit">{editingTicketId ? "Update Ticket" : "Submit Ticket"}</button>
+                <div className="ticket-form-actions" style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                  <button type="submit" className="v6-action-pill primary" style={{ fontSize: '15px', padding: '10px 24px' }}>
+                     <span className="pill-icon">🚀</span>
+                     <span className="pill-text">{editingTicketId ? "Update Ticket" : "Submit Ticket"}</span>
+                  </button>
                   {editingTicketId && (
                     <button
                       type="button"
-                      className="secondary-btn"
+                      className="v6-action-pill danger"
+                      style={{ fontSize: '15px', padding: '10px 24px' }}
                       onClick={handleCancelTicketEdit}
                     >
-                      Cancel Edit
+                      <span className="pill-icon">✖️</span>
+                      <span className="pill-text">Cancel Edit</span>
                     </button>
                   )}
                 </div>
@@ -350,14 +361,15 @@ export default function T_TicketView({
 
               {latestSubmittedTicket && !editingTicketId && (
                 <article className="glass-panel">
-                  <div className="panel-header-actions">
+                  <div className="panel-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <h2>Submitted Ticket Details</h2>
                     <button
                       type="button"
-                      className="tiny-btn"
+                      className="v6-action-pill"
                       onClick={() => handleDownloadTicketPdf(latestSubmittedTicket)}
                     >
-                      Download PDF
+                      <span className="pill-icon">📄</span>
+                      <span className="pill-text">Download PDF</span>
                     </button>
                   </div>
                   <div className="ticket-meta" style={{ display: "grid", gap: "0.45rem" }}>
@@ -384,6 +396,64 @@ export default function T_TicketView({
           )}
         </section>
       </div>
+      <style>{`
+        .v6-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .v6-action-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: #475569;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .v6-action-pill:hover {
+            background: #ffffff;
+            color: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .v6-action-pill.primary {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.primary:hover {
+            background: #0284c7;
+        }
+
+        .v6-action-pill.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .v6-action-pill.danger:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .pill-icon {
+            font-size: 14px;
+        }
+      `}</style>
     </main>
   );
 }

@@ -30,11 +30,20 @@ export function dispatchTicketNotification({ type, ticketId, ticketTitle, newSta
 }
 
 function buildMessage(type, title, newStatus) {
+  const formatStatus = (s) => {
+    if (!s) return "";
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace("_", " ");
+  };
+
   if (type === "STATUS_CHANGE") {
-    return `Your ticket "${title}" status changed to ${newStatus}.`;
+    const statusText = formatStatus(newStatus);
+    return `Your ticket "${title}" status changed to ${statusText}.`;
   }
   if (type === "NEW_COMMENT") {
     return `A new comment was added to your ticket "${title}".`;
+  }
+  if (type === "ASSIGNED") {
+    return `Ticket "${title}" has been assigned for maintenance.`;
   }
   return `Update on ticket "${title}".`;
 }

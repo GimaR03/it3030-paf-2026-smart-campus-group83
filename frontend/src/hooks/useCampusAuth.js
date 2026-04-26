@@ -12,7 +12,10 @@ import {
 } from "../api/campusApi";
 
 export function useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDashboard, clearMessages }) {
-  const [authUser, setAuthUser] = useState(null);
+  const [authUser, setAuthUser] = useState(() => {
+    const saved = localStorage.getItem("campus_auth_user");
+    return saved ? JSON.parse(saved) : null;
+  });
   const [admins, setAdmins] = useState([]);
   const [maintenanceStaff, setMaintenanceStaff] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -39,6 +42,14 @@ export function useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDa
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    if (authUser) {
+      localStorage.setItem("campus_auth_user", JSON.stringify(authUser));
+    } else {
+      localStorage.removeItem("campus_auth_user");
+    }
+  }, [authUser]);
 
   const loadAdmins = async () => {
     if (!authUser || authUser.role !== "ADMIN") return;
@@ -153,6 +164,7 @@ export function useCampusAuth({ setErrorMessage, setSuccessMessage, setCurrentDa
 
   const handleLogout = () => {
     setAuthUser(null);
+    localStorage.removeItem("campus_auth_user");
     setCurrentDashboard("login");
     setSuccessMessage("Logged out successfully.");
   };

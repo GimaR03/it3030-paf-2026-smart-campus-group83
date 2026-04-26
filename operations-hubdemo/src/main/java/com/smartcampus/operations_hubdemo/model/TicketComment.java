@@ -28,10 +28,16 @@ public class TicketComment {
     @Column(nullable = false, length = 1000)
     private String content;
 
+    @Column(nullable = true, length = 30)
+    private String authorRole;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     public TicketComment() {}
+
+    public String getAuthorRole() { return authorRole; }
+    public void setAuthorRole(String authorRole) { this.authorRole = authorRole; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

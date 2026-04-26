@@ -41,7 +41,7 @@ public class Ticket {
     private TicketPriority priority;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 30, columnDefinition = "VARCHAR(30)")
     private TicketStatus status;
 
     @Column(nullable = false)

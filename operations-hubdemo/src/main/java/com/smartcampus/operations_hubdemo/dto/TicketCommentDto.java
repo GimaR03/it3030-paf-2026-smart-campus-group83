@@ -7,6 +7,7 @@ public record TicketCommentDto(
         Long ticketId,
         Long authorId,
         String authorName,
+        String authorRole,
         String content,
         LocalDateTime createdAt
 ) {

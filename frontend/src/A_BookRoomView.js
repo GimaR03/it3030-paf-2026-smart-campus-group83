@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
-import NotificationPanel from "./NotificationPanel";
 
 export default function ABookRoomView({
   clearMessages,
   setCurrentDashboard,
   handleLogout,
   buildings,
-  bookRoomLocationOptions,
   bookRoomSelectedBuildingId,
   setBookRoomSelectedBuildingId,
   setBookRoomSelectedFloorId,
@@ -33,9 +31,7 @@ export default function ABookRoomView({
   handleCancelMyBooking,
   rooms,
   bookNotifications,
-  bookUnreadCount,
   clearBookNotifications,
-  markBookNotificationsRead,
   authUser,
 }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -44,12 +40,12 @@ export default function ABookRoomView({
   async function handleViewBookingStatus() {
     clearMessages();
 
-    if (!authUser?.userId) {
-      setErrorMessage("Please log in to view your booking status.");
+    if (!bookingUserId) {
+      setErrorMessage("Enter a User ID to view booking status.");
       return;
     }
 
-    await loadMyBookings(authUser);
+    await loadMyBookings();
     setStatusFilter("ALL");
     setShowBookingStatus(true);
 
@@ -136,10 +132,6 @@ export default function ABookRoomView({
     }));
   }
 
-  const selectedLocationValue = bookRoomSelectedFloorId
-    ? `${bookRoomSelectedBuildingId}_${bookRoomSelectedFloorId}`
-    : "";
-
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
@@ -152,36 +144,52 @@ export default function ABookRoomView({
               <span className="user-role">Campus Member</span>
             </div>
           </div>
-          <div className="hero-actions">
+          <div className="v6-nav-actions">
               <button
                 type="button"
-                className="tiny-btn"
+                className="v6-action-pill"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("ticket");
                 }}
+                title="Go to Support Tickets"
               >
-                Ticket Page
+                <span className="pill-icon">🎫</span>
+                <span className="pill-text">Tickets</span>
               </button>
+              
               <button
                 type="button"
-                className="tiny-btn"
+                className={`v6-action-pill ${bookNotifications.length > 0 ? 'has-alerts' : ''}`}
                 onClick={() => setShowNotifications((current) => !current)}
+                title="View Notifications"
               >
-                Notifications ({bookUnreadCount})
+                <span className="pill-icon">🔔</span>
+                <span className="pill-text">Alerts</span>
+                <span className="pill-badge">{bookNotifications.length}</span>
               </button>
-              <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
-                🚪 Logout
+              
+              <button 
+                type="button" 
+                className="v6-action-pill danger" 
+                onClick={handleLogout}
+                title="Sign Out"
+              >
+                <span className="pill-icon">🚪</span>
+                <span className="pill-text">Logout</span>
               </button>
+              
               <button
                 type="button"
-                className="tiny-btn"
+                className="v6-action-pill primary"
                 onClick={() => {
                   clearMessages();
                   setCurrentDashboard("portal");
                 }}
+                title="Return to Portal"
               >
-                ← Portal
+                <span className="pill-icon">🧭</span>
+                <span className="pill-text">Portal</span>
               </button>
           </div>
         </div>
@@ -224,15 +232,64 @@ export default function ABookRoomView({
             </button>
           </div>
 
+          {bookNotifications.length > 0 && (
+            <article className="glass-panel booking-notice-panel">
+              <div className="panel-header-actions">
+                <h2>Notification Bar</h2>
+                <button
+                  type="button"
+                  className="tiny-btn booking-btn booking-btn-ghost"
+                  onClick={clearBookNotifications}
+                >
+                  Clear
+                </button>
+              </div>
+              <ul className="ticket-images booking-notification-list">
+                {bookNotifications.slice(0, 5).map((notice) => (
+                  <li key={notice.id}>
+                    <strong>{notice.message}</strong>
+                    <div>
+                      {notice.building ? `Building: ${notice.building}` : ""}
+                      {notice.floor ? ` | Floor: ${notice.floor}` : ""}
+                      {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
+                    </div>
+                    {notice.timestamp && <small>{notice.timestamp}</small>}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
+
           {showNotifications && (
-            <NotificationPanel
-              title="Booking Notifications"
-              kicker="Approval Updates"
-              notifications={bookNotifications}
-              emptyText="No booking updates yet."
-              onMarkAllRead={markBookNotificationsRead}
-              onClearAll={clearBookNotifications}
-            />
+            <article className="glass-panel booking-notice-panel">
+              <div className="panel-header-actions">
+                <h2>Book Notifications</h2>
+                <button
+                  type="button"
+                  className="tiny-btn booking-btn booking-btn-ghost"
+                  onClick={clearBookNotifications}
+                >
+                  Clear
+                </button>
+              </div>
+              {bookNotifications.length === 0 ? (
+                <p className="empty">No notifications yet.</p>
+              ) : (
+                <ul className="ticket-images booking-notification-list">
+                  {bookNotifications.map((notice) => (
+                    <li key={notice.id}>
+                      <strong>{notice.message}</strong>
+                      <div>
+                        {notice.building ? `Building: ${notice.building}` : ""}
+                        {notice.floor ? ` | Floor: ${notice.floor}` : ""}
+                        {notice.hallLab ? ` | Hall/Lab: ${notice.hallLab}` : ""}
+                      </div>
+                      {notice.timestamp && <small>{notice.timestamp}</small>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
           )}
 
         <div className="book-room-container">
@@ -251,9 +308,6 @@ export default function ABookRoomView({
                   {selectedRoom ? `${selectedRoom.name} selected` : "No room selected"}
                 </div>
               </div>
-
-              {errorMessage && <p className="message error">{errorMessage}</p>}
-              {successMessage && <p className="message success">{successMessage}</p>}
 
               <div className="booking-highlight-strip">
                 <div className="booking-highlight-card">
@@ -278,74 +332,14 @@ export default function ABookRoomView({
 
               <div className="room-field-grid booking-form-grid">
                 <label className="field-card">
-                  Location
-                  <select
-                    required
-                    value={selectedLocationValue}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      clearMessages();
-                      setBookingForm((current) => ({
-                        ...current,
-                        resourceId: "",
-                      }));
-
-                      if (!value) {
-                        setBookRoomSelectedBuildingId(null);
-                        setBookRoomSelectedFloorId(null);
-                        return;
-                      }
-
-                      const [buildingId, floorId] = value.split("_");
-                      setBookRoomSelectedBuildingId(buildingId);
-                      setBookRoomSelectedFloorId(floorId);
-                    }}
-                  >
-                    <option value="">Choose a building and floor</option>
-                    {bookRoomLocationOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        Building {option.buildingNo} - Floor {option.floorLabel || option.floorNumber}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field-card">
-                  Room
-                  <select
-                    required
-                    value={bookingForm.resourceId}
-                    disabled={!bookRoomSelectedFloor || bookRoomRooms.length === 0}
-                    onChange={(event) =>
-                      setBookingForm((current) => ({
-                        ...current,
-                        resourceId: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">
-                      {!bookRoomSelectedFloor
-                        ? "Select a location first"
-                        : bookRoomRooms.length === 0
-                          ? "No rooms on this floor"
-                          : "Choose a room"}
-                    </option>
-                    {bookRoomRooms.map((room) => (
-                      <option key={room.id} value={room.id} disabled={room.status !== "ACTIVE"}>
-                        {room.name} ({room.id}) {room.status !== "ACTIVE" ? `- ${formatLabel(room.status)}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field-card">
-                  Booking User
+                  User ID
                   <input
-                    type="text"
-                    value={
-                      authUser?.userId
-                        ? `${authUser.fullName || "User"} (ID: ${authUser.userId})`
-                        : "Login required"
-                    }
-                    readOnly
+                    required
+                    min="1"
+                    type="number"
+                    value={bookingUserId}
+                    onChange={(event) => setBookingUserId(event.target.value)}
+                    placeholder="1"
                   />
                 </label>
                 <label className="field-card">
@@ -355,8 +349,13 @@ export default function ABookRoomView({
                     min="1"
                     type="number"
                     value={bookingForm.resourceId}
-                    readOnly
-                    placeholder="Auto filled from room selection"
+                    onChange={(event) =>
+                      setBookingForm((current) => ({
+                        ...current,
+                        resourceId: event.target.value,
+                      }))
+                    }
+                    placeholder="Auto fill by Book Now"
                   />
                 </label>
                 <label className="field-card">
@@ -482,14 +481,9 @@ export default function ABookRoomView({
             <div className="selector-group combined-selector">
               <label>Select Location (Building & Floor)</label>
               <select
-                value={selectedLocationValue}
+                value={bookRoomSelectedFloorId ? `${bookRoomSelectedBuildingId}_${bookRoomSelectedFloorId}` : ""}
                 onChange={(event) => {
                   const val = event.target.value;
-                  clearMessages();
-                  setBookingForm((current) => ({
-                    ...current,
-                    resourceId: "",
-                  }));
                   if (!val) {
                     setBookRoomSelectedBuildingId(null);
                     setBookRoomSelectedFloorId(null);
@@ -501,10 +495,14 @@ export default function ABookRoomView({
                 }}
               >
                 <option value="">-- Choose Building & Floor --</option>
-                {bookRoomLocationOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    Building {option.buildingNo} - Floor {option.floorLabel || option.floorNumber}
-                  </option>
+                {buildings.map((building) => (
+                  <optgroup key={building.id} label={`Building ${building.buildingNo}: ${building.name}`}>
+                    {building.floors?.map((floor) => (
+                      <option key={floor.id} value={`${building.id}_${floor.id}`}>
+                        Building {building.buildingNo} - Floor {floor.label || floor.floorNumber}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -630,7 +628,7 @@ export default function ABookRoomView({
               </div>
 
               {filteredBookings.length === 0 ? (
-                <p className="empty">No bookings found for your account yet.</p>
+                <p className="empty">No bookings found for this user.</p>
               ) : (
                 <div className="ticket-grid-modern">
                   {filteredBookings.map((booking) => {
@@ -724,8 +722,88 @@ export default function ABookRoomView({
               )}
             </article>
           )}
+
+          {errorMessage && <p className="message error">{errorMessage}</p>}
+          {successMessage && <p className="message success">{successMessage}</p>}
         </div>
       </div>
+      <style>{`
+        .v6-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .v6-action-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: #475569;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .v6-action-pill:hover {
+            background: #ffffff;
+            color: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .v6-action-pill.primary {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.primary:hover {
+            background: #0284c7;
+        }
+
+        .v6-action-pill.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .v6-action-pill.danger:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.has-alerts {
+            background: #fef08a;
+            color: #854d0e;
+        }
+
+        .v6-action-pill.has-alerts:hover {
+            background: #fde047;
+        }
+
+        .pill-icon {
+            font-size: 14px;
+        }
+
+        .pill-badge {
+            background: #ef4444;
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-left: 4px;
+        }
+      `}</style>
     </main>
   );
 }

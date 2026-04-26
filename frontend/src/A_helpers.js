@@ -52,6 +52,9 @@ export function getTicketStatusTone(status) {
   if (status === "RESOLVED") {
     return "resolved";
   }
+  if (status === "REJECTED") {
+    return "rejected";
+  }
   return "closed";
 }
 

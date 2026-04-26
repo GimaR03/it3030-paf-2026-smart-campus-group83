@@ -5,9 +5,9 @@ import {
   portalActions,
   roomTypes,
 } from "./A_constants";
-import { 
-  formatLabel, 
-  getRoomQuickNote, 
+import {
+  formatLabel,
+  getRoomQuickNote,
   getTicketStatusTone,
   getTicketBuildingLabel
 } from "./A_helpers";
@@ -33,13 +33,24 @@ import { useCampusTickets } from "./hooks/useCampusTickets";
 const NOTIFICATION_STORAGE_KEY = "smartCampusSystemNotifications";
 
 function App() {
-  const [currentDashboard, setCurrentDashboard] = useState("login");
+  const [currentDashboard, setCurrentDashboard] = useState(() => {
+    const saved = localStorage.getItem("campus_auth_user");
+    if (!saved) return "login";
+    try {
+      const user = JSON.parse(saved);
+      if (user.role === "ADMIN") return "admin";
+      if (user.role === "MAINTENANCE") return "maintenance";
+      return "portal";
+    } catch (e) {
+      return "login";
+    }
+  });
   const [blankPageTitle, setBlankPageTitle] = useState("");
   const [activeSection, setActiveSection] = useState("manage-buildings");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  
+
   const [systemNotifications, setSystemNotifications] = useState(() => {
     try {
       const raw = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
@@ -69,12 +80,12 @@ function App() {
   const { buildings, rooms } = resources;
 
   // 3. Bookings Hook
-  const bookings = useCampusBookings({ 
-    setErrorMessage, 
-    setSuccessMessage, 
-    authUser, 
-    clearMessages, 
-    systemNotifications, 
+  const bookings = useCampusBookings({
+    setErrorMessage,
+    setSuccessMessage,
+    authUser,
+    clearMessages,
+    systemNotifications,
     setSystemNotifications,
     addSystemNotification,
     buildings,
@@ -219,7 +230,7 @@ function App() {
 
   if (currentDashboard === "portal") {
     const dynamicActions = [...portalActions];
-    
+
     // Add Maintenance Hub if user is MAINTENANCE
     if (authUser?.role === "MAINTENANCE") {
       dynamicActions.push({
@@ -231,10 +242,10 @@ function App() {
       });
     }
 
-    // Filter out login if already logged in
+    // Filter out login and admin if already logged in
     let filteredActions = dynamicActions;
     if (authUser) {
-      filteredActions = dynamicActions.filter(a => a.id !== "login");
+      filteredActions = dynamicActions.filter(a => a.id !== "login" && a.id !== "admin");
     }
 
     return (

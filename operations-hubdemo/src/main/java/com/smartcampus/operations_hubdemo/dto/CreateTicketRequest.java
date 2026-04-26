@@ -42,6 +42,8 @@ public class CreateTicketRequest {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime createdDate;
 
+    private Long assignedMaintenanceId;
+
     public CreateTicketRequest() {
     }
 
@@ -115,5 +117,13 @@ public class CreateTicketRequest {
 
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public Long getAssignedMaintenanceId() {
+        return assignedMaintenanceId;
+    }
+
+    public void setAssignedMaintenanceId(Long assignedMaintenanceId) {
+        this.assignedMaintenanceId = assignedMaintenanceId;
     }
 }
