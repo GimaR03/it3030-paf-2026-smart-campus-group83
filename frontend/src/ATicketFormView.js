@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ticketCategories,
   ticketPriorities,
@@ -6,7 +6,6 @@ import {
   ticketBuildingOptions,
 } from "./A_constants";
 import { formatLabel, formatFileSize } from "./A_helpers";
-import NotificationPanel from "./NotificationPanel";
 
 export default function ATicketFormView({
   editingTicketId,
@@ -26,13 +25,7 @@ export default function ATicketFormView({
   errorMessage,
   successMessage,
   handleLogout,
-  notifications,
-  unreadNotificationsCount,
-  markNotificationsRead,
-  clearNotifications,
 }) {
-  const [showNotifications, setShowNotifications] = useState(false);
-
   return (
     <main className="dashboard-shell">
       <div className="abstract-bg" />
@@ -45,86 +38,68 @@ export default function ATicketFormView({
               <span className="user-role">Campus Member</span>
             </div>
           </div>
-          <div className="hero-actions">
-            <button
-              type="button"
-              className="tiny-btn"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard("ticket-history");
-              }}
-            >
-              My Tickets
-            </button>
-            <button
-              type="button"
-              className="tiny-btn"
-              onClick={() => setShowNotifications((current) => !current)}
-            >
-              Notifications ({unreadNotificationsCount})
-            </button>
-            <button
-              type="button"
-              className="tiny-btn"
-              onClick={() => {
-                clearMessages();
-                setCurrentDashboard("portal");
-              }}
-            >
-              Portal
-            </button>
-            <button type="button" className="tiny-btn logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
+          <div className="v6-nav-actions">
+              <button
+                type="button"
+                className="v6-action-pill"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("ticket-history");
+                }}
+              >
+                <span className="pill-icon">📋</span>
+                <span className="pill-text">My Tickets</span>
+              </button>
+              <button
+                type="button"
+                className="v6-action-pill primary"
+                onClick={() => {
+                  clearMessages();
+                  setCurrentDashboard("portal");
+                }}
+              >
+                <span className="pill-icon">🧭</span>
+                <span className="pill-text">Portal</span>
+              </button>
+              <button type="button" className="v6-action-pill danger" onClick={handleLogout}>
+                <span className="pill-icon">🚪</span>
+                <span className="pill-text">Logout</span>
+              </button>
           </div>
         </div>
 
         <header className="hero-banner admin-hero-v3">
           <div className="hero-content">
-            <span className="hero-tag">Smart Campus Support</span>
+            <span className="hero-tag">✦ Smart Campus Support</span>
             <h1>Support Desk</h1>
             <p>
-              Report technical or facility issues with ease. Use the notification
-              panel to keep up with ticket comments and status changes.
+              Report technical or facility issues with ease. Our maintenance team is ready to assist you.
             </p>
           </div>
         </header>
 
         <section className="stats-v3">
           <article className="stat-card-v3">
-            <span>History</span>
+            <span>📑 History</span>
             <strong>{myTicketHistory.length} Total</strong>
             <small>Requests submitted</small>
           </article>
           <article className="stat-card-v3">
-            <span>Open</span>
+            <span>⏺ Open</span>
             <strong>{myTicketStatusCount.OPEN || 0} Pending</strong>
             <small>Awaiting review</small>
           </article>
           <article className="stat-card-v3">
-            <span>Active</span>
+            <span>🔄 Active</span>
             <strong>{myTicketStatusCount.IN_PROGRESS || 0} Work</strong>
             <small>Being resolved now</small>
           </article>
           <article className="stat-card-v3">
-            <span>Done</span>
-            <strong>
-              {(myTicketStatusCount.RESOLVED || 0) + (myTicketStatusCount.CLOSED || 0)}
-            </strong>
+            <span>✅ Done</span>
+            <strong>{(myTicketStatusCount.RESOLVED || 0) + (myTicketStatusCount.CLOSED || 0)}</strong>
             <small>Resolved issues</small>
           </article>
         </section>
-
-        {showNotifications && (
-          <NotificationPanel
-            title="Ticket Notifications"
-            kicker="Support Updates"
-            notifications={notifications}
-            emptyText="No ticket updates yet."
-            onMarkAllRead={markNotificationsRead}
-            onClearAll={clearNotifications}
-          />
-        )}
 
         {errorMessage && <p className="message error">{errorMessage}</p>}
         {successMessage && <p className="message success">{successMessage}</p>}
@@ -135,13 +110,13 @@ export default function ATicketFormView({
               <div className="panel-header-actions">
                 <div>
                   <p className="panel-kicker">{editingTicketId ? "Update Request" : "New Support Request"}</p>
-                  <h2>{editingTicketId ? "Edit Ticket" : "Raise a Ticket"}</h2>
+                  <h2>{editingTicketId ? "✏️ Edit Ticket" : "🎫 Raise a Ticket"}</h2>
                 </div>
                 <div className="header-status-badge">
-                  {editingTicketId ? "Editing Mode" : "New Draft"}
+                   {editingTicketId ? "Editing Mode" : "New Draft"}
                 </div>
               </div>
-
+              
               <p className="summary-note ticket-intro">
                 Provide clear details and specify the exact location to help our staff diagnose and fix the issue faster.
               </p>
@@ -365,8 +340,7 @@ export default function ATicketFormView({
                         <small className="field-hint">Max size: 25MB per file</small>
                       </span>
                       <span className="upload-badge premium">
-                        {selectedTicketImages.length}{" "}
-                        {selectedTicketImages.length === 1 ? "file" : "files"}
+                        {selectedTicketImages.length} {selectedTicketImages.length === 1 ? "file" : "files"}
                       </span>
                     </span>
                     <input
@@ -384,7 +358,7 @@ export default function ATicketFormView({
                     />
                     <div className="upload-button-fake">Choose Images</div>
                   </div>
-
+                  
                   {selectedTicketImages.length > 0 && (
                     <div className="upload-file-list-modern">
                       {selectedTicketImages.map((file) => (
@@ -404,7 +378,7 @@ export default function ATicketFormView({
 
               <div className="ticket-form-actions-modern">
                 <button type="submit" className="primary-btn pulse">
-                  {editingTicketId ? "Update Ticket" : "Submit Support Request"}
+                  {editingTicketId ? "✓ Update Ticket" : "🚀 Submit Support Request"}
                 </button>
                 {editingTicketId && (
                   <button
@@ -420,6 +394,64 @@ export default function ATicketFormView({
           </div>
         </section>
       </div>
+      <style>{`
+        .v6-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .v6-action-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: #475569;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .v6-action-pill:hover {
+            background: #ffffff;
+            color: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .v6-action-pill.primary {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .v6-action-pill.primary:hover {
+            background: #0284c7;
+        }
+
+        .v6-action-pill.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .v6-action-pill.danger:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .pill-icon {
+            font-size: 14px;
+        }
+      `}</style>
     </main>
   );
 }

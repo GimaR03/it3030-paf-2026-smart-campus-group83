@@ -61,15 +61,22 @@ public class TicketService {
     public TicketResponse assignMaintenance(Long ticketId, Long maintenanceId) {
         Ticket ticket = findTicket(ticketId);
         ticket.setAssignedMaintenanceId(maintenanceId);
+        
+        // Automatically open the ticket if it was just submitted
+        if (ticket.getStatus() == com.smartcampus.operations_hubdemo.model.TicketStatus.SUBMITTED) {
+            ticket.setStatus(com.smartcampus.operations_hubdemo.model.TicketStatus.OPEN);
+        }
+        
         return toTicketResponse(ticketRepository.save(ticket));
     }
 
     @Transactional
-    public com.smartcampus.operations_hubdemo.dto.TicketCommentDto addComment(Long ticketId, Long authorId, String content) {
-        findTicket(ticketId); // Validate ticket exists
+    public com.smartcampus.operations_hubdemo.dto.TicketCommentDto addComment(Long ticketId, Long authorId, String authorRole, String content) {
+        Ticket ticket = findTicket(ticketId);
         com.smartcampus.operations_hubdemo.model.TicketComment comment = new com.smartcampus.operations_hubdemo.model.TicketComment();
         comment.setTicketId(ticketId);
         comment.setAuthorId(authorId);
+        comment.setAuthorRole(authorRole != null ? authorRole : "USER");
         comment.setContent(content);
         comment.setCreatedAt(java.time.LocalDateTime.now());
         
@@ -81,7 +88,7 @@ public class TicketService {
         comment = commentRepository.save(comment);
         return new com.smartcampus.operations_hubdemo.dto.TicketCommentDto(
             comment.getId(), comment.getTicketId(), comment.getAuthorId(),
-            comment.getAuthorName(), comment.getContent(), comment.getCreatedAt()
+            comment.getAuthorName(), comment.getAuthorRole(), comment.getContent(), comment.getCreatedAt()
         );
     }
 
@@ -89,7 +96,7 @@ public class TicketService {
         return commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
             .map(c -> new com.smartcampus.operations_hubdemo.dto.TicketCommentDto(
                 c.getId(), c.getTicketId(), c.getAuthorId(),
-                c.getAuthorName(), c.getContent(), c.getCreatedAt()
+                c.getAuthorName(), c.getAuthorRole(), c.getContent(), c.getCreatedAt()
             )).toList();
     }
 
@@ -108,7 +115,7 @@ public class TicketService {
     public TicketResponse updateTicket(Long ticketId, CreateTicketRequest request, Long creatorId) {
         Ticket ticket = findTicket(ticketId);
         applyTicketFields(ticket, request);
-        ticket.setCreatorId(creatorId != null ? creatorId : ticket.getCreatorId());
+        // Ensure creatorId is never overwritten by the updater (e.g. maintenance staff)
         Ticket saved = ticketRepository.save(ticket);
         return toTicketResponse(saved);
     }
@@ -135,6 +142,7 @@ public class TicketService {
         ticket.setUserId(request.getUserId());
         ticket.setAssignedTechnicianId(normalizeOptionalText(request.getAssignedTechnicianId()));
         ticket.setCreatedDate(request.getCreatedDate());
+        ticket.setAssignedMaintenanceId(request.getAssignedMaintenanceId());
     }
 
     private List<String> storeImages(List<MultipartFile> images) {

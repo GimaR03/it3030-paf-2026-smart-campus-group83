@@ -40,7 +40,11 @@ public class TicketController {
             return ticketService.getTickets();
         }
         if ("MAINTENANCE".equalsIgnoreCase(role)) {
-            return ticketService.getTickets();
+            // Maintenance see tickets assigned to them OR tickets that are OPEN (approved but unassigned)
+            return ticketService.getTickets().stream()
+                    .filter(t -> (t.assignedMaintenanceId() != null && t.assignedMaintenanceId().equals(headerUserId))
+                            || t.status() == com.smartcampus.operations_hubdemo.model.TicketStatus.OPEN)
+                    .toList();
         }
         if (headerUserId != null) {
             return ticketService.getTicketsByCreatorId(headerUserId);
@@ -87,7 +91,7 @@ public class TicketController {
             throw new org.springframework.web.server.ResponseStatusException(
                 HttpStatus.FORBIDDEN, "Access denied. You must be an admin, the creator, or maintenance staff to comment.");
         }
-        return ticketService.addComment(ticketId, headerUserId, request.getContent());
+        return ticketService.addComment(ticketId, headerUserId, role, request.getContent());
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
